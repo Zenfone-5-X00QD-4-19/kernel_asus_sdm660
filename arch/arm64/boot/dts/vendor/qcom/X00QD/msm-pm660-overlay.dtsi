@@ -88,3 +88,13 @@
 		};
 	};
 };
+
+&pm660_haptics {
+	status = "okay";
+	compatible = "qcom,qpnp-vibrator";
+	reg = <0xc000 0x100>;
+	label = "vibrator";
+	qcom,vib-timeout-ms = <15000>;
+	qcom,vib-vtg-level-mV = <3100>;
+	qcom,mode = "manual";
+};
