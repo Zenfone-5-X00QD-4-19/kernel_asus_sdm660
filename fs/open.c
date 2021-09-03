@@ -1098,7 +1098,7 @@ static char *files_array[] = {
 	"autoSPPH",
 	"legendary_kernel_tweaks",
 	"MODIFY",
-	"com.zeetaa",
+	"zeetaatweaks",
 	"beastmode",
 	"DejavuFpsStabilizer",
 	"MRB",
