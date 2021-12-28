@@ -140,3 +140,16 @@ kernel/configs/android-*.cfg
 #Ignoring Android.bp link file
 #
 Android.bp
+
+# Out directory
+out
+
+# compiler
+clang
+
+# AnyKernel3
+AnyKernel3
+
+# Build/Regenerate Scripts
+*.sh
+*.log
