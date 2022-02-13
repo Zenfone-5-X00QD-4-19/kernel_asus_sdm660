@@ -52,6 +52,9 @@ extern const __be32 *of_get_address(struct device_node *dev, int index,
 extern const __be32 *of_get_address_by_name(struct device_node *dev,
 			   const char *name, u64 *size, unsigned int *flags);
 
+extern const __be32 *of_get_address_by_name(struct device_node *dev,
+			   const char *name, u64 *size, unsigned int *flags);
+
 extern int of_pci_range_parser_init(struct of_pci_range_parser *parser,
 			struct device_node *node);
 extern int of_pci_dma_range_parser_init(struct of_pci_range_parser *parser,

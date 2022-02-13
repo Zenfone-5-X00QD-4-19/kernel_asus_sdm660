@@ -468,6 +468,15 @@ config LEDS_PCA963X
 	  LED driver chip accessed via the I2C bus. Supported
 	  devices include PCA9633 and PCA9634
 
+config LEDS_QPNP
+	tristate "Support for QPNP LEDs"
+	depends on LEDS_CLASS && SPMI
+	help
+	  This driver supports the LED functionality of Qualcomm Technologies,
+	  Inc. QPNP PMICs.  It primarily supports controlling tri-color RGB
+	  LEDs in both PWM and light pattern generator (LPG) modes.  For older
+	  PMICs, it also supports WLEDs and flash LEDs.
+
 config LEDS_WM831X_STATUS
 	tristate "LED support for status LEDs on WM831x PMICs"
 	depends on LEDS_CLASS
