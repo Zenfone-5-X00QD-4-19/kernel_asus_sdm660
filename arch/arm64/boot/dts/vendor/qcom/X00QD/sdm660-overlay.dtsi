@@ -58,6 +58,11 @@
 	qcom,chipid = <0x05010200>;
 };
 
+&msm_gpu {
+	/* sdm636.dtsi defaults to A509, but X00T has A512 tweaks */
+	qcom,chipid = <0x05010200>;
+};
+
 &mem_client_3_size {
 		/delete-property/ qcom,allocate-on-request;
 
