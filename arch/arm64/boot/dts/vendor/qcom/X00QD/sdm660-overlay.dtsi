@@ -129,3 +129,9 @@ cpus {
 	/delete-node/ vbat_low;
 	/delete-node/ vbat_too_low;
 };
+
+&thermal_zones {
+	/delete-node/ vbat_adc;
+	/delete-node/ vbat_low;
+	/delete-node/ vbat_too_low;
+};
