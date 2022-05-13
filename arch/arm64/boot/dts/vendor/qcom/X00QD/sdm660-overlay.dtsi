@@ -134,3 +134,9 @@ energy_costs: energy-costs {
 		};
 	};
 };
+
+&thermal_zones {
+	/delete-node/ vbat_adc;
+	/delete-node/ vbat_low;
+	/delete-node/ vbat_too_low;
+};
