@@ -16,8 +16,10 @@
 #include "sdm636.dtsi"
 #include "sdm636-qrd.dtsi"
 #include "sdm660-internal-codec.dtsi"
+
 #include "X00QD/overlay.dtsi"
 #include "X00QD/sdm636-qrd-overlay.dtsi"
+#include "X00QD/sdm660-external-codec-overlay.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. ARA-ER-OC SDM 636 PM660 + PM660L QRD";
