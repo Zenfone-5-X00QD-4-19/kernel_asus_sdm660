@@ -11170,15 +11170,15 @@ int send_tfa_cal_apr(void *buf, int cmd_size, bool bRead)
 	memset(&param_hdr, 0x00, sizeof(struct param_hdr_v3));
 	memset(&apr_msg[0], 0x00, sizeof(apr_msg));
 
-	if (tfa_cal->map_data.ion_handle == NULL)	{
+	if (0 == tfa_cal->map_data.dma_buf ) {
 		/*Minimal chunk size is 4K*/
 		tfa_cal->map_data.map_size = SZ_4K;
-		result = msm_audio_ion_alloc("tfa_cal", &(tfa_cal->map_data.ion_client),
-									&(tfa_cal->map_data.ion_handle),
-									tfa_cal->map_data.map_size,
-									&(tfa_cal->cal_data.paddr),
-									&len,
-									&(tfa_cal->cal_data.kvaddr));
+		result = msm_audio_ion_alloc(&(tfa_cal->map_data.dma_buf),
+								tfa_cal->map_data.map_size,
+								&(tfa_cal->cal_data.paddr),
+								&len,
+								&(tfa_cal->cal_data.kvaddr));
+
 		if (result < 0) {
 			pr_err("%s: allocate buffer failed! ret = %d\n",
 				__func__, result);
@@ -11358,7 +11358,8 @@ int send_tfa_cal_in_band(void *buf, int cmd_size)
 
 	memcpy(&prot_config, buf, cmd_size);
 
-	return afe_spk_prot_prepare(port_id, 0, AFE_PARAM_ID_TFADSP_RX_CFG, &prot_config);
+	return afe_spk_prot_prepare(port_id, 0, AFE_PARAM_ID_TFADSP_RX_CFG,
+					&prot_config,sizeof(union afe_spkr_prot_config));
 }
 EXPORT_SYMBOL(send_tfa_cal_in_band);
 
