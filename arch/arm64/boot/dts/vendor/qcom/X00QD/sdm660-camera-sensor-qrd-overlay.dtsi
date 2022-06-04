@@ -145,7 +145,8 @@
 		qcom,gpio-no-mux = <0>;
 		pinctrl-names = "cam_default", "cam_suspend";
 		pinctrl-0 = <&cam_sensor_mclk1_active
-				 &cam_sensor_front_active>;
+				&cam_sensor_front_active
+				&cam_sensor_eldo3_default>;
 		pinctrl-1 = <&cam_sensor_mclk1_suspend
 				 &cam_sensor_front_suspend>;
 		gpios = <&tlmm 33 0>,
@@ -193,7 +194,8 @@
 		qcom,gpio-no-mux = <0>;
 		pinctrl-names = "cam_default", "cam_suspend";
 		pinctrl-0 = <&cam_sensor_mclk3_active
-				 &cam_sensor_rear2_active>;
+				&cam_sensor_rear2_active
+				&cam_sensor_eldo4_default>;
 		pinctrl-1 = <&cam_sensor_mclk3_suspend
 				 &cam_sensor_rear2_suspend>;
 		gpios = <&tlmm 35 0>,
