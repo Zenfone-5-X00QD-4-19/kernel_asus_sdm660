@@ -29,14 +29,18 @@
 #include <linux/uaccess.h>
 //ASUS INCLUDE FILES ---
 
+#ifdef DEBUG
 #define smblib_err(chg, fmt, ...)		\
 	pr_err("%s: %s: " fmt, chg->name,	\
 		__func__, ##__VA_ARGS__)	\
 
 #define smblib_dbg(chg, reason, fmt, ...)			\
 	do { } while (0)
+#else
+#define smblib_err(chg, fmt, ...) do {} while (0)
+#define smblib_dbg(chg, reason, fmt, ...) do {} while (0)
+#endif
 // ++++++++++++++++++ ASUS'  DEFINE  VARIABLE  DECLAIRE EXTERN +++++++++++++++++++//
-
 // ASUS PD: PDO ICL +++
 /* 
 # Refer to "PD power config" in porting guide.
@@ -55,6 +59,15 @@ In Ara, CONFIG_ASUS_PD_CHARGER=0
 const u32 default_src_caps[] = { 0x36019032 };  /* VSafe5V @ 0.5A */
 int default_src_caps_size = ARRAY_SIZE(default_src_caps);
 int min_sink_current = 500;
+
+#ifdef CONFIG_MACH_XIAOMI_LAVENDER
+struct g_nvt_data {
+	bool valid;
+	bool usb_plugin;
+	struct work_struct nvt_usb_plugin_work;
+};
+extern struct g_nvt_data g_nvt;
+>>>>>>> 9a24abebe00b (power: supply: Conditionally compile logging)
 #endif
 // ASUS PD: PDO ICL ---
 
@@ -5785,6 +5798,7 @@ int smblib_get_prop_slave_current_now(struct smb_charger *chg,
  * INTERRUPT HANDLERS *
  **********************/
 
+#ifdef DEBUG
 irqreturn_t smblib_handle_debug(int irq, void *data)
 {
 	struct smb_irq_data *irq_data = data;
@@ -5793,6 +5807,12 @@ irqreturn_t smblib_handle_debug(int irq, void *data)
 	smblib_dbg(chg, PR_INTERRUPT, "IRQ: %s\n", irq_data->name);
 	return IRQ_HANDLED;
 }
+#else
+inline irqreturn_t smblib_handle_debug(int irq, void *data)
+{
+	return IRQ_HANDLED;
+}
+#endif
 
 irqreturn_t smblib_handle_otg_overcurrent(int irq, void *data)
 {
