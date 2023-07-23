@@ -428,6 +428,8 @@ struct qpnp_wled {
 	ktime_t			start_ovp_fault_time;
 };
 
+static struct qpnp_wled *g_wled;
+
 static int qpnp_wled_step_delay_us = 52000;
 module_param_named(
 	total_step_delay_us, qpnp_wled_step_delay_us, int, 0600
@@ -1085,6 +1087,45 @@ static ssize_t qpnp_wled_fs_curr_ua_store(struct device *dev,
 
 	return count;
 }
+
+int qpnp_wled_fs_curr_ua_set(unsigned int curr_ua)
+{
+	struct qpnp_wled *wled = g_wled;
+	unsigned int rc, i;
+	u8 reg;
+
+	printk("[Display] Seting wled fs current UA to %d.\n", curr_ua);
+
+	if (!wled) {
+		printk("[Display] Wled instance null pointer. Ignore setting current request. \n");
+		return -1;
+	}
+
+	for (i = 0; i < wled->max_strings; i++) {
+		if (curr_ua < QPNP_WLED_FS_CURR_MIN_UA)
+			curr_ua = QPNP_WLED_FS_CURR_MIN_UA;
+		else if (curr_ua > QPNP_WLED_FS_CURR_MAX_UA)
+			curr_ua = QPNP_WLED_FS_CURR_MAX_UA;
+
+		reg = curr_ua / QPNP_WLED_FS_CURR_STEP_UA;
+		rc = qpnp_wled_masked_write_reg(wled,
+			QPNP_WLED_FS_CURR_REG(wled->sink_base, i),
+			QPNP_WLED_FS_CURR_MASK, reg);
+		if (rc < 0)
+			return rc;
+	}
+
+	wled->fs_curr_ua = curr_ua;
+
+	rc = qpnp_wled_sync_reg_toggle(wled);
+	if (rc < 0) {
+		dev_err(&wled->pdev->dev, "Failed to toggle sync reg %d\n", rc);
+		return rc;
+	}
+
+	return rc;
+}
+EXPORT_SYMBOL(qpnp_wled_fs_curr_ua_set);
 
 /* sysfs attributes exported by wled */
 static struct device_attribute qpnp_wled_attrs[] = {
