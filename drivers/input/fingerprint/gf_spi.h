@@ -149,7 +149,7 @@ struct gf_dev {
 	struct notifier_block notifier;
 	char device_available;
 	char fb_black;
-
+        struct wakeup_source *fp_wakelock;
 	struct regulator *vcc;
 	unsigned int osvcc_ze602kl_enable_pin;
 };
