@@ -33,7 +33,7 @@
 * 1.Included header files
 *****************************************************************************/
 #include "../focaltech_core.h"
-#include <linux/wakelock.h>
+#include <linux/pm_wakeup.h>
 #include <linux/timer.h>
 
 /*****************************************************************************

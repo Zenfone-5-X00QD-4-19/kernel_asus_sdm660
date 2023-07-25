@@ -120,7 +120,8 @@ bool fts_gesture_check(void);
 int report_touch_locatoin_count[10];
 /* --- asus add for print touch location --- */
 static bool touch_down_up_status;
-static struct wake_lock fts_suspend_wlock;
+static struct wakeup_source *fts_suspend_wlock;
+
 
 /*****************************************************************************
 *  Name: fts_wait_tp_to_valid
@@ -1874,7 +1875,7 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 
 	INIT_WORK(&data->resume_work, focal_resume_work);
 	INIT_WORK(&data->suspend_work, focal_suspend_work);
-	wake_lock_init(&fts_suspend_wlock, WAKE_LOCK_SUSPEND, "fts_suspend_wake_lock");
+	fts_suspend_wlock = wakeup_source_register(NULL, "fts_suspend_wlock");
 
     fts_ctpm_get_upgrade_array();
 
@@ -2059,7 +2060,7 @@ static int fts_ts_remove(struct i2c_client *client)
 		destroy_workqueue(data->suspend_resume_wq);
 	}
 
-	wake_lock_destroy(&fts_suspend_wlock);
+	wakeup_source_unregister(fts_suspend_wlock);
 
 #if FTS_PSENSOR_EN
     fts_sensor_remove(data);
@@ -2142,7 +2143,7 @@ int fts_ts_suspend(void)
 		//focal_suspend_work();
 		printk("[FTS][touch] schedule a suspend wq\n");
 		queue_work(fts_wq_data->suspend_resume_wq, &fts_wq_data->suspend_work);
-		wake_lock_timeout(&fts_suspend_wlock, msecs_to_jiffies(100));
+		__pm_wakeup_event(fts_suspend_wlock, FTS_WAKELOCK_TIME);
 	}
 	return 0;
 		
