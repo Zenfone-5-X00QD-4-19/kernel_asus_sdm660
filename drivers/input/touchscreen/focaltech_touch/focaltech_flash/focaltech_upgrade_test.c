@@ -33,7 +33,6 @@
 * 1.Included header files
 *****************************************************************************/
 #include "../focaltech_core.h"
-#include <linux/wakelock.h>
 #include <linux/timer.h>
 
 /*****************************************************************************
@@ -43,7 +42,6 @@
 /*****************************************************************************
 * Global variable or extern global variabls/functions
 *****************************************************************************/
-struct wake_lock ps_lock;
 extern u8 upgrade_ecc;
 
 #define FTS_DEBUG_UPGRADE(fmt, args...) do{\
@@ -161,10 +159,6 @@ int fts_ctpm_auto_upgrade(struct i2c_client *client)
     static int uc_ErrorTimes = 0;
     static int uc_UpgradeTimes = 0;
 
-    wake_lock_init(&ps_lock, WAKE_LOCK_SUSPEND, "tp_wakelock");
-
-    wake_lock(&ps_lock);
-
     do
     {
         uc_UpgradeTimes++;
@@ -188,8 +182,6 @@ int fts_ctpm_auto_upgrade(struct i2c_client *client)
     while (uc_UpgradeTimes < (FTS_UPGRADE_TEST_NUMBER));
 
     fts_updatefun_curr.need_upgrade = true;
-
-    wake_unlock(&ps_lock);
 
     return 0;
 }
