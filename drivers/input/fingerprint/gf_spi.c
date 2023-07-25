@@ -40,7 +40,7 @@
 #include <linux/fb.h>
 #include <linux/pm_qos.h>
 #include <linux/cpufreq.h>
-#include <linux/wakelock.h>
+#include <linux/pm_wakeup.h>
 #include "gf_spi.h"
 
 #if defined(USE_SPI_BUS)
@@ -76,7 +76,7 @@ extern bool g_Charger_mode;
 static DECLARE_BITMAP(minors, N_SPI_MINORS);
 static LIST_HEAD(device_list);
 static DEFINE_MUTEX(device_list_lock);
-static struct wake_lock fp_wakelock;
+static struct wakeup_source *fp_wakelock;
 static struct gf_dev gf;
 
 struct gf_key_map maps[] = {
@@ -526,7 +526,7 @@ static irqreturn_t gf_irq(int irq, void *handle)
 	kobject_uevent(&gf_dev->spi->dev.kobj, KOBJ_CHANGE);
 
 	//printk("[GDX_FP] irqreturn: netlink enable \n");
-	wake_lock_timeout(&fp_wakelock, msecs_to_jiffies(WAKELOCK_HOLD_TIME));
+	__pm_wakeup_event(fp_wakelock, msecs_to_jiffies(WAKELOCK_HOLD_TIME));
 	sendnlmsg(&msg);
 	//printk("[GDX_FP] irqreturn \n");
 	return IRQ_HANDLED;
@@ -795,7 +795,7 @@ static int gf_probe(struct platform_device *pdev)
 	gf_dev->irq = gf_irq_num(gf_dev);
 	printk("[GDX_FP] irq number: %d\n",gf_dev->irq);
 
-	wake_lock_init(&fp_wakelock, WAKE_LOCK_SUSPEND, "fp_wakelock");
+	fp_wakelock = wakeup_source_register(NULL, "fp_wakelock");
 	status = request_threaded_irq(gf_dev->irq, NULL, gf_irq,
 			IRQF_TRIGGER_RISING | IRQF_ONESHOT,
 			"gf", gf_dev);
@@ -854,7 +854,7 @@ static int gf_remove(struct platform_device *pdev)
 {
 	struct gf_dev *gf_dev = &gf;
 
-	wake_lock_destroy(&fp_wakelock);
+	wakeup_source_unregister(fp_wakelock);
 	/* make sure ops on existing fds can abort cleanly */
 	if (gf_dev->irq)
 		free_irq(gf_dev->irq, gf_dev);
