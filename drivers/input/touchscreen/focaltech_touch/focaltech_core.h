@@ -70,7 +70,7 @@
 #include "focaltech_flash.h"
 #include <linux/switch.h>
 #include <linux/gpio.h>
-#include <linux/wakelock.h>
+#include <linux/pm_wakeup.h>
 #include <linux/string.h>
 #ifndef __HAVE_ARCH_STRNCMP
 extern int strncmp(const char *,const char *,__kernel_size_t);
@@ -108,7 +108,7 @@ extern int strncmp(const char *,const char *,__kernel_size_t);
 										(strncmp(buf, "on", 2) == 0))
 #define FTS_SYSFS_ECHO_OFF(buf)		((strncmp(buf, "0", 1)  == 0) || \
 										(strncmp(buf, "off", 3) == 0))
-
+#define FTS_WAKELOCK_TIME			200
 /*****************************************************************************
 * Private enumerations, structures and unions using typedef
 *****************************************************************************/
@@ -179,7 +179,7 @@ struct fts_ts_data
 	struct switch_dev touch_sdev;
 	struct mutex g_device_mutex;
 	/* Wakelock Protect */
-	struct wake_lock wake_lock;
+	struct wakeup_source *wake_lock;
 	/* Wakelock Protect */
 #if defined(CONFIG_FB)
     struct notifier_block fb_notif;
