@@ -1,0 +1,23 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
+&pm660l_wled {
+	interrupts = <0x3 0xd8 0x1 IRQ_TYPE_EDGE_RISING>,
+				 <0x3 0xd8 0x2 IRQ_TYPE_EDGE_RISING>;
+	interrupt-names = "ovp-irq", "sc-irq";
+	qcom,switch-freq-khz = <600>;
+	qcom,dim-mode = "hybrid";
+	qcom,fs-curr-ua = <20000>;
+	qcom,led-strings-list = [00 01/* 02*/];
+	qcom,en-ext-pfet-sc-pro;
+	qcom,en-cabc;
+};
+
+&lcdb_ldo_vreg {
+	regulator-min-microvolt = <5500000>;
+	regulator-max-microvolt = <5500000>;
+};
+
+&lcdb_ncp_vreg {
+	regulator-min-microvolt = <5500000>;
+	regulator-max-microvolt = <5500000>;
+};

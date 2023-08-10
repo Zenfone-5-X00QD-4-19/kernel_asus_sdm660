@@ -1,0 +1,90 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
+/ {
+	reserved-memory {
+		ramoops {
+			compatible = "removed-dma-pool", "ramoops";
+			no-map;
+			reg = <0x0 0x94b00000 0x0 0x400000>;
+			console-size = <0x200000>;
+			pmsg-size = <0x200000>;
+			status = "ok";
+		};
+
+		cont_splash_mem: splash_region@9d400000 {
+			reg = <0x0 0x9d400000 0x0 0x02400000>;
+			label = "cont_splash_mem";
+		};
+
+		/delete-node/ dfps_data_mem@0x9f7ff000;
+
+		dfps_data_mem: dfps_data_mem@0x9f800000 {
+			reg = <0x0 0x9f800000 0x0 0x00001000>;
+			label = "dfps_data_mem";
+		};
+	};
+};
+
+&firmware {
+	android {
+		fstab {
+			vendor {
+				fsmgr_flags = "wait";
+				status = "ok";
+			};
+
+			system {
+				compatible = "android,system";
+				dev = "/dev/block/platform/soc/c0c4000.sdhci/by-name/system";
+				type = "ext4";
+				mnt_flags = "ro,barrier=1,discard";
+				fsmgr_flags = "wait";
+				status = "ok";
+			};
+		};
+	};
+};
+
+&wdog {
+	qcom,bark-time = <13000>;
+};
+
+&mem_client_3_size {
+		/delete-property/ qcom,allocate-on-request;
+
+		qcom,allocate-boot-time;
+};
+
+&pil_modem {
+	/delete-property/ qcom,complete-ramdump;
+};
+
+&soc {
+	qcom,glink-smem-native-xprt-adsp@86000000 {
+		/delete-property/ cpu-affinity;
+	};
+	
+	ufs1: ufshc@1da4000 {
+		/delete-property/ pinctrl-names;
+		/delete-property/ pinctrl-0;
+		/delete-property/ pinctrl-1;
+	};
+	
+	gpio_keys {
+		/delete-node/ camera_focus;
+		/delete-node/ camera_snapshot;
+
+		vol_up {
+			gpios = <&tlmm 44 0x1>;
+		};
+
+		vol_down {
+			label = "volume_down";
+			gpios = <&tlmm 43 0x1>;
+			linux,input-type = <1>;
+			linux,code = <114>;
+			gpio-key,wakeup;
+			debounce-interval = <15>;
+		};
+	};
+};
