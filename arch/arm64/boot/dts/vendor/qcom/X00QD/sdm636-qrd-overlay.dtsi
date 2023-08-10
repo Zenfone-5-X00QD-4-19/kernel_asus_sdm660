@@ -1,0 +1,136 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
+/* Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "sdm630-qrd-overlay.dtsi"
+#include "sdm660-pinctrl-overlay.dtsi"
+#include "sdm630-camera-sensor-qrd-overlay.dtsi"
+#include "sdm660-camera-sensor-qrd-overlay.dtsi"
+
+&pm660l_gpios {
+    gpio@c400 {
+        reg = <0xc400 0x100>;
+        qcom,pin-num = <5>;
+        status = "ok";
+    };
+};
+
+&i2c_4 {
+	status = "okay";
+	focaltech@38 {
+		compatible = "focaltech,fts";
+		//compatible = "focaltech,ft3517";
+		reg = <0x38>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <67 0x2008>;
+		//vdd-supply = <&pm660l_l3>;
+		vcc_i2c-supply = <&pm660_l14>;
+		/* pins used by touchscreen */
+		/*pinctrl-names = "pmx_ts_active","pmx_ts_suspend","pmx_ts_release";
+		pinctrl-0 = <&ts_active>;
+		pinctrl-1 = <&ts_suspend>;
+		//pinctrl-2 = <&ts_release>;*/
+		focaltech,name = "ft8716";
+		//focaltech,family-id = <0x58>;
+		focaltech,reset-gpio = <&tlmm 66 0x0>;
+		focaltech,irq-gpio = <&tlmm 67 0x0>;
+		focaltech,display-coords = <0 0 1080 1920>;
+		focaltech,display-coords-ara = <0 0 1080 2246>;
+		//focaltech,panel-coords = <0 0 1080 1920>;
+		//focaltech,button-map= <139 102 158>;
+		focaltech,have-key;
+		focaltech,key-number = <3>;
+		focaltech,max-touch-number = <10>;
+		focaltech,keys = <158 102 139>;
+		focaltech,key-y-coord = <2000>;
+		focaltech,key-x-coord = <200 400 600>;
+	};
+
+	synaptics_dsx@20 {
+		compatible = "synaptics,dsx-i2c";
+		reg = <0x20>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <67 0x2008>;
+		vcc_i2c-supply = <&pm660_l14>;
+		//synaptics,pwr-reg-name = "vdd_ana";
+		synaptics,bus-reg-name = "vcc_i2c";
+		synaptics,irq-gpio = <&tlmm 67 0x2008>;
+		//synaptics,reset-gpio  = <&tlmm 66 0x0>;
+		synaptics,irq-on-state = <0>;
+		synaptics,irq-flags = <0x2008>; // IRQF_ONESHOT | IRQF_TRIGGER_LOW
+		synaptics,power-delay-ms = <200>;
+		synaptics,reset-delay-ms = <200>;
+		synaptics,reset-on-state = <0>;
+		synaptics,reset-active-ms = <20>;
+		synaptics,ub-i2c-addr = <0x2c>;
+		// uncomment and update line below as appropriate if there are 0D buttons
+		synaptics,cap-button-codes = <158 139 139>;
+		// uncomment and update lines below as appropriate if there are virtual buttons
+		// synaptics,vir-button-codes = <102 100 900 100 60 158 300 900 100 60>;
+		// synaptics,max-y-for-2d = <800>;
+	};
+};
+
+&i2c_6 {
+        status = "okay";
+	tfa98xx@34 {
+		compatible = "nxp,tfa98xx";
+		reg = <0x34>;
+	};
+	tfa98xx@35 {
+		compatible = "nxp,tfa98xx";
+		reg = <0x35>;
+	};
+};
+
+&i2c_7 {
+	status = "okay";
+	cm36656_i2c@60 {
+		compatible = "qcom,cm36656";
+		reg = <0x60>;
+		pinctrl-names = "alsps_gpio_high","alsps_gpio_low";
+		pinctrl-0 = <&cm36656_default>;
+		pinctrl-1 = <&cm36656_sleep>;
+		qcom,alsps-gpio = <&tlmm 45 0x0>;
+		vcc_ana-supply = <&pm660l_l3>;
+	};
+
+	qcom_tcs3400_i2c@39 {
+		compatible = "ams,tcs3400";
+		reg = <0x39>;
+		vinc-supply=<&pm660l_l6>;
+	};
+};
+
+&soc {
+	hall_sensor {
+        compatible = "qcom,hall";
+        pinctrl-names = "hall_gpio_high","hall_gpio_low";
+        pinctrl-0 = <&gpio_hall_active>;
+        pinctrl-1 = <&gpio_hall_suspend>;
+        qcom,hall-gpio = <&tlmm 75 0x0>;
+    };
+
+	goodixfp {
+		compatible = "goodix,fingerprint";
+		fp-reset-gpio = <&tlmm 20 0x0>;
+		fp-irq-gpio = <&tlmm 72 0x2008>;
+		fp-vcc-enable-gpio = <&pm660l_gpios 5 0x0>;
+		fp-ID1-gpio = <&tlmm 74 0x0>;
+		/* Pinctrl Setting */
+		qcom,use-pinctrl;
+		pinctrl-names = "fp_default", "fp_sleep";
+		pinctrl-0 = <&fp_int_active>;
+		pinctrl-1 = <&fp_int_suspend>;
+	};
+};
