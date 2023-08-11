@@ -5513,6 +5513,12 @@ static int msm_dai_q6_mi2s_hw_params(struct snd_pcm_substream *substream,
 		&mi2s_dai_data->rx_dai : &mi2s_dai_data->tx_dai);
 	struct msm_dai_q6_dai_data *dai_data = &mi2s_dai_config->mi2s_dai_data;
 	struct afe_param_id_i2s_cfg *i2s = &dai_data->port_config.i2s;
+	u16 port_id = 0;
+
+	if (msm_mi2s_get_port_id(dai->id, substream->stream, &port_id) != 0) {
+		dev_err(dai->dev, "%s: Invalid Port ID 0x%x\n",
+				__func__, port_id);
+	}
 
 	dai_data->channels = params_channels(params);
 	switch (dai_data->channels) {
@@ -5685,6 +5691,10 @@ static int msm_dai_q6_mi2s_hw_params(struct snd_pcm_substream *substream,
 	case SNDRV_PCM_FORMAT_S32_LE:
 		dai_data->port_config.i2s.bit_width = 32;
 		dai_data->bitwidth = 32;
+		if (AFE_PORT_ID_TERTIARY_MI2S_TX == port_id) {
+			dai_data->port_config.i2s.bit_width = 32;
+			dai_data->bitwidth = 32;
+		}
 		break;
 	default:
 		pr_err("%s: format %d\n",
@@ -5704,9 +5714,12 @@ static int msm_dai_q6_mi2s_hw_params(struct snd_pcm_substream *substream,
 	    test_bit(STATUS_PORT_STARTED,
 	    mi2s_dai_data->tx_dai.mi2s_dai_data.hwfree_status))) {
 		if ((mi2s_dai_data->tx_dai.mi2s_dai_data.rate !=
-		    mi2s_dai_data->rx_dai.mi2s_dai_data.rate) ||
-		   (mi2s_dai_data->rx_dai.mi2s_dai_data.bitwidth !=
-		    mi2s_dai_data->tx_dai.mi2s_dai_data.bitwidth)) {
+		    mi2s_dai_data->rx_dai.mi2s_dai_data.rate)
+#ifndef CONFIG_ASUS_ZE620KL_PROJECT
+		|| (mi2s_dai_data->rx_dai.mi2s_dai_data.bitwidth !=
+                    mi2s_dai_data->tx_dai.mi2s_dai_data.bitwidth)
+#endif
+		) {
 			dev_err(dai->dev, "%s: Error mismatch in HW params\n"
 				"Tx sample_rate = %u bit_width = %hu\n"
 				"Rx sample_rate = %u bit_width = %hu\n"
