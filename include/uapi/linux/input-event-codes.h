@@ -28,6 +28,14 @@
 #define INPUT_PROP_POINTING_STICK	0x05	/* is a pointing stick */
 #define INPUT_PROP_ACCELEROMETER	0x06	/* has accelerometer */
 
+#define FP_KEY_UP		0x258
+#define FP_KEY_DOWN		0x259
+#define FP_KEY_LEFT		0x25a
+#define FP_KEY_RIGHT		0x25b
+#define FP_KEY_CLICK		0x25c
+#define FP_KEY_DOUBLE_CLICK	0x25d
+#define FP_KEY_LONG_PRESS	0x25e
+
 #define INPUT_PROP_MAX			0x1f
 #define INPUT_PROP_CNT			(INPUT_PROP_MAX + 1)
 
