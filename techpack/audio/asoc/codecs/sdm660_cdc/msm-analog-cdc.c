@@ -27,6 +27,8 @@
 #include <asoc/sdm660-common.h>
 #include <asoc/wcd-mbhc-v2-api.h>
 
+struct sdm660_cdc_priv *g_sdm660_cdc_priv;
+
 #define DRV_NAME "pmic_analog_codec"
 #define SDM660_CDC_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000 |\
 			SNDRV_PCM_RATE_32000 | SNDRV_PCM_RATE_44100 |\
@@ -555,6 +557,8 @@ static void msm_anlg_cdc_mbhc_common_micb_ctrl(
 	snd_soc_component_update_bits(component, reg, mask, val);
 }
 
+/* Ken +++ */
+#if 0
 static void msm_anlg_cdc_mbhc_internal_micbias_ctrl(
 					struct snd_soc_component *component,
 					int micbias_num,
@@ -571,6 +575,8 @@ static void msm_anlg_cdc_mbhc_internal_micbias_ctrl(
 				0x10, 0x00);
 	}
 }
+#endif
+/* Ken --- */
 
 static bool msm_anlg_cdc_mbhc_hph_pa_on_status(
 					struct snd_soc_component *component)
@@ -945,7 +951,7 @@ static const struct wcd_mbhc_cb mbhc_cb = {
 	.micbias_enable_status = msm_anlg_cdc_micb_en_status,
 	.mbhc_bias = msm_anlg_cdc_enable_master_bias,
 	.mbhc_common_micb_ctrl = msm_anlg_cdc_mbhc_common_micb_ctrl,
-	.micb_internal = msm_anlg_cdc_mbhc_internal_micbias_ctrl,
+	.micb_internal = NULL,	//Bruno++ Since our headset has re for pull high, we don't need internel RBIAS. (msm_anlg_cdc_mbhc_internal_micbias_ctrl)
 	.hph_pa_on_status = msm_anlg_cdc_mbhc_hph_pa_on_status,
 	.set_btn_thr = msm_anlg_cdc_mbhc_program_btn_thr,
 	.extn_use_mb = msm_anlg_cdc_use_mb,
