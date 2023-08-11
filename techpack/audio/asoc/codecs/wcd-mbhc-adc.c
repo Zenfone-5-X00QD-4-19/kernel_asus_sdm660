@@ -294,111 +294,6 @@ done:
 	return anc_mic_found;
 }
 
-/* To determine if cross connection occurred */
-static int wcd_check_cross_conn(struct wcd_mbhc *mbhc)
-{
-	enum wcd_mbhc_plug_type plug_type = MBHC_PLUG_TYPE_NONE;
-	int hphl_adc_res = 0, hphr_adc_res = 0;
-	u8 fsm_en = 0;
-	int ret = 0;
-	u8 adc_mode = 0;
-	u8 elect_ctl = 0;
-	u8 adc_en = 0;
-
-	pr_debug("%s: enter\n", __func__);
-	/* Check for button press and plug detection */
-	if (wcd_swch_level_remove(mbhc)) {
-		pr_debug("%s: Switch level is low\n", __func__);
-		return -EINVAL;
-	}
-
-	/* If PA is enabled, dont check for cross-connection */
-	if (mbhc->mbhc_cb->hph_pa_on_status)
-		if (mbhc->mbhc_cb->hph_pa_on_status(mbhc->component))
-			return -EINVAL;
-
-	/* Read legacy electircal detection and disable */
-	WCD_MBHC_REG_READ(WCD_MBHC_ELECT_SCHMT_ISRC, elect_ctl);
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_SCHMT_ISRC, 0x00);
-
-	/* Disable surge detection before ADC measurement */
-	if (mbhc->mbhc_cb->mbhc_surge_ctl)
-		mbhc->mbhc_cb->mbhc_surge_ctl(mbhc, false);
-
-	/* Read and set ADC to single measurement */
-	WCD_MBHC_REG_READ(WCD_MBHC_ADC_MODE, adc_mode);
-	/* Read ADC Enable bit to restore after adc measurement */
-	WCD_MBHC_REG_READ(WCD_MBHC_ADC_EN, adc_en);
-	/* Read FSM status */
-	WCD_MBHC_REG_READ(WCD_MBHC_FSM_EN, fsm_en);
-
-	/* Get adc result for HPH L */
-	hphl_adc_res = wcd_measure_adc_once(mbhc, MUX_CTL_HPH_L);
-	if (hphl_adc_res < 0) {
-		pr_err("%s: hphl_adc_res adc measurement failed\n", __func__);
-		ret = hphl_adc_res;
-		goto done;
-	}
-
-	/* Get adc result for HPH R in mV */
-	hphr_adc_res = wcd_measure_adc_once(mbhc, MUX_CTL_HPH_R);
-	if (hphr_adc_res < 0) {
-		pr_err("%s: hphr_adc_res adc measurement failed\n", __func__);
-		ret = hphr_adc_res;
-		goto done;
-	}
-
-	/* Update cross connection threshold voltages if needed */
-	if (mbhc->mbhc_cb->update_cross_conn_thr)
-		mbhc->mbhc_cb->update_cross_conn_thr(mbhc);
-
-	if (hphl_adc_res > mbhc->hphl_cross_conn_thr ||
-	    hphr_adc_res > mbhc->hphr_cross_conn_thr) {
-		plug_type = MBHC_PLUG_TYPE_GND_MIC_SWAP;
-		pr_debug("%s: Cross connection identified\n", __func__);
-	} else {
-		pr_debug("%s: No Cross connection found\n", __func__);
-	}
-
-done:
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);
-	/* Set the MUX selection to Auto */
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_MUX_CTL, MUX_CTL_AUTO);
-	/*
-	 * Current source mode requires Auto zeroing to be enabled
-	 * automatically. If HW doesn't do it, SW has to take care of this
-	 * for button interrupts to work fine and to avoid
-	 * fake electrical removal interrupts by enabling autozero before FSM
-	 * enable and disable it after FSM enable
-	 */
-	if (mbhc->mbhc_cb->mbhc_comp_autozero_control)
-		mbhc->mbhc_cb->mbhc_comp_autozero_control(mbhc,
-							true);
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 1);
-	if (mbhc->mbhc_cb->mbhc_comp_autozero_control)
-		mbhc->mbhc_cb->mbhc_comp_autozero_control(mbhc,
-							false);
-	/* Restore ADC Enable */
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ADC_EN, adc_en);
-
-	/* Restore ADC mode */
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ADC_MODE, adc_mode);
-
-	/* Restore FSM state */
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, fsm_en);
-
-	/* Restore surge detection */
-	if (mbhc->mbhc_cb->mbhc_surge_ctl)
-		mbhc->mbhc_cb->mbhc_surge_ctl(mbhc, true);
-
-	/* Restore electrical detection */
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_SCHMT_ISRC, elect_ctl);
-
-	pr_debug("%s: leave, plug type: %d\n", __func__,  plug_type);
-
-	return (plug_type == MBHC_PLUG_TYPE_GND_MIC_SWAP) ? true : false;
-}
-
 static int wcd_mbhc_adc_get_spl_hs_thres(struct wcd_mbhc *mbhc)
 {
 	int hs_threshold, micbias_mv;
@@ -688,7 +583,7 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	int ret = 0;
 	int spl_hs_count = 0;
 	int output_mv = 0;
-	int cross_conn;
+	int cross_conn = 0;	/* ASUS_BSP +++ Fix OMTP headset issue */
 	int try = 0;
 	int hs_threshold, micbias_mv;
 
@@ -707,7 +602,8 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 
 	/* Check for cross connection */
 	do {
-		cross_conn = wcd_check_cross_conn(mbhc);
+		//cross_conn = wcd_check_cross_conn(mbhc);
+		cross_conn = 0;
 		try++;
 	} while (try < mbhc->swap_thr);
 
@@ -805,7 +701,8 @@ correct_plug_type:
 		if ((output_mv <= hs_threshold) &&
 		    (!is_pa_on)) {
 			/* Check for cross connection*/
-			ret = wcd_check_cross_conn(mbhc);
+			//ret = wcd_check_cross_conn(mbhc);
+			ret = 0;
 			if (ret < 0)
 				continue;
 			else if (ret > 0) {
@@ -960,8 +857,18 @@ enable_supply:
 exit:
 	if (mbhc->mbhc_cb->mbhc_micbias_control &&
 	    !mbhc->micbias_enable)
+	/* #ASUS_BSP +++ Enable MIC bias always if HEADSET inserted for ASUS Design */
+	{
+		if (plug_type == MBHC_PLUG_TYPE_HEADSET) {
+			mbhc->mbhc_cb->mbhc_micbias_control(component, MIC_BIAS_2,
+							    MICB_ENABLE);
+			mbhc->micbias_enable = true;
+		} else	{
 		mbhc->mbhc_cb->mbhc_micbias_control(component, MIC_BIAS_2,
 						    MICB_DISABLE);
+		}
+	}
+	/* #ASUS_BSP --- */
 
 	/*
 	 * If plug type is corrected from special headset to headphone,
