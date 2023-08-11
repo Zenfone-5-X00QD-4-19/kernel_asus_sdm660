@@ -26,6 +26,16 @@
 #include "wcd-mbhc-adc.h"
 #include <asoc/wcd-mbhc-v2-api.h>
 
+/* ASUS_BSP Paul +++ */
+int g_jack_det_invert = 0;
+extern int g_DebugMode;
+/* ASUS_BSP Paul --- */
+
+/* ASUS_BSP Eric +++*/
+uint32_t g_ZL = 0;
+uint32_t g_ZR = 0;
+/* ASUS_BSP Eric ---*/
+
 void wcd_mbhc_jack_report(struct wcd_mbhc *mbhc,
 			  struct snd_soc_jack *jack, int status, int mask)
 {
@@ -83,7 +93,8 @@ static void wcd_program_hs_vref(struct wcd_mbhc *mbhc)
 
 	dev_dbg(component->dev, "%s: reg_val  = %x\n",
 		__func__, reg_val);
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_HS_VREF, reg_val);
+        //WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_HS_VREF, reg_val);
+	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_HS_VREF, 0x3); /* ASUS_BSP Eric +++ */
 }
 
 static void wcd_program_btn_threshold(const struct wcd_mbhc *mbhc, bool micbias)
@@ -295,6 +306,8 @@ out_micb_en:
 		if (mbhc->mbhc_cb->set_micbias_value && !mbhc->micbias_enable)
 			mbhc->mbhc_cb->set_micbias_value(component);
 		/* Enable PULL UP if PA's are enabled */
+		//Rice
+		#if 0
 		if ((test_bit(WCD_MBHC_EVENT_PA_HPHL, &mbhc->event_state)) ||
 				(test_bit(WCD_MBHC_EVENT_PA_HPHR,
 					  &mbhc->event_state)))
@@ -303,7 +316,15 @@ out_micb_en:
 		else
 			/* enable current source and disable mb, pullup*/
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_CS);
-
+        #endif
+		if (mbhc->current_plug > MBHC_PLUG_TYPE_NONE)	{
+			if (mbhc->current_plug == MBHC_PLUG_TYPE_HEADPHONE)
+				wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_CS);
+			else
+				wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_MB);
+		} else
+			pr_debug("%s: current_plug state wrong! (mbhc->current_plug(%d))\n", __func__, mbhc->current_plug);
+		//Rice
 		/* configure cap settings properly when micbias is disabled */
 		if (mbhc->mbhc_cb->set_cap_mode)
 			mbhc->mbhc_cb->set_cap_mode(component, micbias1, false);
@@ -690,6 +711,11 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 1);
 			mbhc->mbhc_cb->compute_impedance(mbhc,
 					&mbhc->zl, &mbhc->zr);
+                        /* ASUS_BSP Eric +++*/
+			g_ZL = mbhc->zl;
+			g_ZR = mbhc->zr;
+			printk("wcd_mbhc_v2 : print hs_imp_val : LL = %d , RR = %d\n",g_ZL, g_ZR);
+			/* ASUS_BSP Eric ---*/
 			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN,
 						 fsm_en);
 			if ((mbhc->zl > mbhc->mbhc_cfg->linein_th) &&
@@ -1001,6 +1027,7 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 				mbhc->mbhc_cb->micb_internal(component,
 							1, false);
 			/* Pulldown micbias */
+            WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_MICB_CTRL, 0);//Rice
 			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_PULLDOWN_CTRL, 1);
 			jack_type = SND_JACK_HEADSET;
 			break;
@@ -1420,7 +1447,8 @@ static int wcd_mbhc_initialise(struct wcd_mbhc *mbhc)
 		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 4);
 	} else {
 		/* Insertion debounce set to 96ms */
-		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 6);
+		/* ASUS_BSP +++ debounce time set to 512ms for ASUS ARA project HW design */
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_INSREM_DBNC, 0xB);
 	}
 
 	/* Button Debounce set to 16ms */
