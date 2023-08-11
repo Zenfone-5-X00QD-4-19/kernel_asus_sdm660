@@ -256,7 +256,7 @@ static struct dev_config proxy_rx_cfg = {
 static struct dev_config mi2s_rx_cfg[] = {
 	[PRIM_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
 	[SEC_MI2S]  = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
-	[TERT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
+	[TERT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S24_LE, 2},
 	[QUAT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
 	[QUIN_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
 };
@@ -264,7 +264,7 @@ static struct dev_config mi2s_rx_cfg[] = {
 static struct dev_config mi2s_tx_cfg[] = {
 	[PRIM_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
 	[SEC_MI2S]  = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
-	[TERT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
+	[TERT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S24_LE, 2},
 	[QUAT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
 	[QUIN_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
 };
@@ -4623,9 +4623,13 @@ int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 				goto clk_off;
 			}
 		}
-		if (pdata->mi2s_gpio_p[index])
-			msm_cdc_pinctrl_select_active_state(
-					pdata->mi2s_gpio_p[index]);
+/* ASUS BSP Add for Setting ADSP I2S  TERT_MI2S  pinctrl for stability issue +++ */
+		if (index == TERT_MI2S)
+		{
+			ret = msm_cdc_pinctrl_select_active_state(pdata->tert_mi2s_gpio_p);
+			pr_err("[Audio][MI2S] %s:msm_cdc_pinctrl_select_active_state return:%d : index(%d)\n", __func__, ret, index);
+		}
+/* ASUS_BSP --- */
 	}
 	mutex_unlock(&mi2s_intf_conf[index].lock);
 	return 0;
@@ -5376,6 +5380,10 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 					"qcom,cdc-dmic-gpios", 0);
 		pdata->ext_spk_gpio_p = of_parse_phandle(pdev->dev.of_node,
 					"qcom,cdc-ext-spk-gpios", 0);
+/* ASUS BSP Add for Setting ADSP I2S  TERT_MI2S  pinctrl for stability issue +++ */
+		pdata->tert_mi2s_gpio_p = of_parse_phandle(pdev->dev.of_node,
+					"qcom,tert-mi2s-gpios", 0);
+/* ASUS BSP --- */
 	}
 
 	pdata->mi2s_gpio_p[PRIM_MI2S] = of_parse_phandle(pdev->dev.of_node,
