@@ -54,7 +54,7 @@
 #include <linux/workqueue.h>
 #include <linux/fs.h>
 #include <linux/proc_fs.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 #include <linux/version.h>
 #include <linux/types.h>
 #include <linux/sched.h>
@@ -68,7 +68,6 @@
 #include <linux/ioctl.h>
 #include "focaltech_common.h"
 #include "focaltech_flash.h"
-#include <linux/switch.h>
 #include <linux/gpio.h>
 #include <linux/pm_wakeup.h>
 #include <linux/string.h>
