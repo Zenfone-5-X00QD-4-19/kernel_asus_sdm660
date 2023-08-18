@@ -16,6 +16,43 @@
 #include <uapi/linux/kernel.h>
 #include <linux/limits.h>
 
+enum {
+	ARA_LCD_AUO = 0,
+	ARA_LCD_AUO_2
+};
+extern int g_asus_lcdID;
+#define ASUS_DISABLE_TOUCH_PORTING_COMPLETED 1
+enum DEVICE_HWID
+{
+	//ZE620KL
+	ZE620KL_SR = 0x0,
+	ZE620KL_ER = 0x2,
+	ZE620KL_ER2 = 0x3,
+	ZE620KL_PR = 0x4,
+	ZE620KL_PR2 = 0x5,
+	ZE620KL_MP = 0x7,
+
+	ZE620KL_UNKNOWN = 0xFF
+};
+extern enum DEVICE_HWID g_ASUS_hwID;
+
+enum DEVICE_PRJID
+{
+	//ZE620KL PRJ
+	ZE620KL_636_PRJ_ID = 0x6,
+
+	//ZE620KL PRJ
+	ZC600KL_630_PRJ_ID = 0xA,
+
+	UNKNOWN_PRJ = 0xFF
+};
+extern enum DEVICE_HWID g_ASUS_prjID;
+// --- ASUS_BSP : add for miniporting
+
+/* ASUS_BSP Audio +++ */
+#define ASUS_AUDIO_MODE_PORTING_COMPLETED 1
+/* ASUS_BSP Audio --- */
+
 #define STACK_MAGIC	0xdeadbeef
 
 /**
