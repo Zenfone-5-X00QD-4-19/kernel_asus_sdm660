@@ -79,6 +79,10 @@
 #define MSMFB_LPM_ENABLE	_IOWR(MSMFB_IOCTL_MAGIC, 170, unsigned int)
 #define MSMFB_MDP_PP_GET_FEATURE_VERSION _IOWR(MSMFB_IOCTL_MAGIC, 171, \
 					      struct mdp_pp_feature_version)
+					      
+// ASUS BSP Display +++
+#define MSMFB_CABC_CTRL _IOW(MSMFB_IOCTL_MAGIC, 172, unsigned int)
+// ASUS BSP Display ---
 
 #define FB_TYPE_3D_PANEL 0x10101010
 #define MDP_IMGTYPE2_START 0x10000
@@ -126,6 +130,15 @@
 #define MDSS_MDP_HW_REV_301	MDSS_MDP_REV(3, 0, 1)  /* msmcobalt v1.0 */
 #define MDSS_MDP_HW_REV_320	MDSS_MDP_REV(3, 2, 0)  /* sdm660 */
 #define MDSS_MDP_HW_REV_330	MDSS_MDP_REV(3, 3, 0)  /* sdm630 */
+
+//ASUS BSP Display, cabc mode +++
+enum {
+	OFF_MODE = 0x0,
+	UI_MODE,
+	Still_MODE,
+	Moving_MODE,
+};
+//ASUS BSP Display, cabc mode ---
 
 enum {
 	NOTIFY_UPDATE_INIT,
