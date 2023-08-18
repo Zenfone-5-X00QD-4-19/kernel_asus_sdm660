@@ -80,6 +80,7 @@ struct msm_pinctrl {
 	void __iomem *regs;
 };
 
+int g_resume_from_fp = 0;
 static struct msm_pinctrl *msm_pinctrl_data;
 
 static int msm_get_groups_count(struct pinctrl_dev *pctldev)
