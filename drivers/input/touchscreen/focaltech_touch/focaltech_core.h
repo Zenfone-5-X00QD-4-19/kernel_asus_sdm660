@@ -175,7 +175,6 @@ struct fts_ts_data
 	bool swipeup_mode_eable;
 	bool gesture_mode_eable;
 	u8 gesture_mode_type;
-	struct switch_dev touch_sdev;
 	struct mutex g_device_mutex;
 	/* Wakelock Protect */
 	struct wakeup_source *wake_lock;

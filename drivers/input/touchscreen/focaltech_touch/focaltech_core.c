@@ -1700,8 +1700,6 @@ static struct notifier_block focal_noti_block = {
 	.notifier_call = focal_notifier_callback,
 };*/
 
-static ssize_t fts_show_tpfwver(struct switch_dev *sdev, char *buf);
-
 /*****************************************************************************
 *  Name: fts_ts_probe
 *  Brief:
@@ -1925,17 +1923,6 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 
     fts_update_fw_ver(data);
     fts_update_fw_vendor_id(data);
-	data->touch_sdev.name = "touch";
-	data->touch_sdev.print_name = fts_show_tpfwver;
-
-	if (switch_dev_register(&data->touch_sdev) < 0)
-	{
-		printk("[Focal][TOUCH_ERR] %s: failed to register switch_dev \n", __func__);
-		goto exit_err_sdev_register_fail;
-	} 
-    pr_err("[FTS][tocuh]Firmware version = 0x%02x.%d.%d, fw_vendor_id=0x%02x \n",
-             data->fw_ver[0], data->fw_ver[1], data->fw_ver[2], data->fw_vendor_id);
-
 
 #if FTS_TEST_EN
     fts_test_init(client);
@@ -1988,7 +1975,7 @@ free_inputdev:
     pr_err("[FTS][tocuh] fts_ts_prob_exit \n");
     return err;
 }
-static ssize_t fts_show_tpfwver(struct switch_dev *sdev, char *buf)
+/*
 {
 	int num_read_chars = 0;
 	IC_FW = get_focal_tp_fw();
@@ -2014,7 +2001,7 @@ u8 get_focal_tp_fw(void)
 	else
 		return fwver;
 }
-/*int ftxxxx_read_tp_id(void)
+int ftxxxx_read_tp_id(void)
 {
 
 	int err = 0;
