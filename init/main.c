@@ -149,6 +149,82 @@ static char *ramdisk_execute_command;
 bool static_key_initialized __read_mostly;
 EXPORT_SYMBOL_GPL(static_key_initialized);
 
+enum DEVICE_HWID g_ASUS_hwID=ZE620KL_UNKNOWN;
+
+EXPORT_SYMBOL(g_ASUS_hwID);
+
+static int set_hardware_id(char *str)
+{
+	// ZE620KL
+	if ( strcmp("0", str) == 0 )
+	{
+		g_ASUS_hwID = ZE620KL_SR;
+		printk("Kernel HW ID = ZE620KL_SR\n");
+	}
+	else if ( strcmp("2", str) == 0 )
+	{
+		g_ASUS_hwID = ZE620KL_ER;
+		printk("Kernel HW ID = ZE620KL_ER\n");
+	}
+	else if ( strcmp("3", str) == 0 )
+	{
+		g_ASUS_hwID = ZE620KL_ER2;
+		printk("Kernel HW ID = ZE620KL_ER2\n");
+	}
+	else if ( strcmp("4", str) == 0 )
+	{
+		g_ASUS_hwID = ZE620KL_PR;
+		printk("Kernel HW ID = ZE620KL_PR\n");
+	}
+	else if ( strcmp("5", str) == 0 )
+	{
+		g_ASUS_hwID = ZE620KL_PR2;
+		printk("Kernel HW ID = ZE620KL_PR2\n");
+	}
+	else if ( strcmp("7", str) == 0 )
+	{
+		g_ASUS_hwID = ZE620KL_MP;
+		printk("Kernel HW ID = ZE620KL_MP\n");
+	}
+	else
+	{
+		g_ASUS_hwID = ZE620KL_UNKNOWN;
+		printk("Kernel HW ID = UNKNOWN\n");
+	}	
+	printk("g_Asus_hwID = %d\n", g_ASUS_hwID);
+
+	return 0;
+}
+ __setup("androidboot.id.stage=", set_hardware_id);
+//--- ASUS_BSP : miniporting
+
+//+++ ASUS_BSP : miniporting
+enum DEVICE_HWID g_ASUS_prjID=ZE620KL_UNKNOWN;
+
+EXPORT_SYMBOL(g_ASUS_prjID);
+
+ static int set_project_id(char *str)
+ {
+	// ZE620KL PRJECT
+	if ( strcmp("6", str) == 0 )
+	{
+		g_ASUS_prjID = ZE620KL_636_PRJ_ID;
+		printk("Kernel PRJ ID = ZE620KL_636\n");
+	}
+	else
+	{
+		g_ASUS_prjID = UNKNOWN_PRJ;
+		printk("Kernel PRJ ID = UNKNOWN\n");
+	}	
+
+	printk("g_ASUS_prjID = %d\n", g_ASUS_prjID);
+
+	return 0;
+
+}
+ __setup("androidboot.id.prj=", set_project_id);
+//--- ASUS_BSP : miniporting
+
 /*
  * If set, this is an indication to the drivers that reset the underlying
  * device before going ahead with the initialization otherwise driver might
