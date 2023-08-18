@@ -11,6 +11,7 @@
 #include <linux/gpio.h>
 #include <linux/err.h>
 #include <linux/regulator/consumer.h>
+#include <linux/leds-qpnp-wled.h>
 #include <linux/clk.h>
 #include <linux/uaccess.h>
 #include <linux/msm-bus.h>
@@ -26,6 +27,19 @@
 #include "mdss_livedisplay.h"
 
 #define CMDLINE_DSI_CTL_NUM_STRING_LEN 2
+
+/* asus display variables */
+static bool first_panel_power_on = true;
+extern bool system_doing_shutdown;
+struct mdss_panel_data *g_mdss_pdata;
+
+bool g_asus_lcd_power_off = false;
+EXPORT_SYMBOL(g_asus_lcd_power_off);
+
+/* asus touch suspend/resume callbacks */
+extern int fts_ts_suspend(void);
+extern bool fts_gesture_check(void);
+
 
 /* Master structure to hold all the information about the DSI/panel */
 static struct mdss_dsi_data *mdss_dsi_res;
@@ -355,6 +369,9 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 {
 	int ret = 0;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
+	bool gesture_en = false;
+
+	gesture_en = fts_gesture_check();
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -365,21 +382,40 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	ret = mdss_dsi_panel_reset(pdata, 0);
-	if (ret) {
-		pr_warn("%s: Panel reset failed. rc=%d\n", __func__, ret);
-		ret = 0;
+	pr_err("[Display] %s: +++\n", __func__);
+
+	if (system_doing_shutdown) {
+		mdelay(10);
+		pr_err("[Display] Doing shutdown, doing reset\n");
+		ret = mdss_dsi_panel_reset(pdata, 0);
+		if (ret) {
+			pr_warn("%s: Panel reset failed. rc=%d\n", __func__, ret);
+			ret = 0;
+		}
+	} else {
+		if (gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
+			gpio_free(ctrl_pdata->disp_en_gpio);
+		}
+		gpio_free(ctrl_pdata->rst_gpio);
+		if (gpio_is_valid(ctrl_pdata->lcd_mode_sel_gpio)) {
+			gpio_free(ctrl_pdata->lcd_mode_sel_gpio);
+		}
 	}
 
 	if (mdss_dsi_pinctrl_set_state(ctrl_pdata, false))
 		pr_debug("reset disable: pinctrl not enabled\n");
 
-	ret = msm_dss_enable_vreg(
-		ctrl_pdata->panel_power_data.vreg_config,
-		ctrl_pdata->panel_power_data.num_vreg, 0);
-	if (ret)
-		pr_err("%s: failed to disable vregs for %s\n",
-			__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
+	if (!gesture_en) {
+		pr_err("[Display] disable power rail.\n");
+		ret = msm_dss_enable_vreg(
+			ctrl_pdata->panel_power_data.vreg_config,
+			ctrl_pdata->panel_power_data.num_vreg, 0);
+		if (ret)
+			pr_err("%s: failed to disable vregs for %s\n",
+				__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
+	}
+
+	pr_err("[Display] %s: ---\n", __func__);
 
 end:
 	return ret;
@@ -389,6 +425,11 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 {
 	int ret = 0;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
+	bool gesture_en = false;
+
+	if (!first_panel_power_on) {
+		gesture_en = fts_gesture_check();
+	}
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -398,13 +439,18 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	ret = msm_dss_enable_vreg(
-		ctrl_pdata->panel_power_data.vreg_config,
-		ctrl_pdata->panel_power_data.num_vreg, 1);
-	if (ret) {
-		pr_err("%s: failed to enable vregs for %s\n",
-			__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
-		return ret;
+	pr_err("[Display] %s: +++\n", __func__);
+
+	if (first_panel_power_on || !gesture_en) {
+		pr_err("[Display] enable power rail.\n");
+		ret = msm_dss_enable_vreg(
+			ctrl_pdata->panel_power_data.vreg_config,
+			ctrl_pdata->panel_power_data.num_vreg, 1);
+		if (ret) {
+			pr_err("%s: failed to enable vregs for %s\n",
+				__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
+			return ret;
+		}
 	}
 
 	/*
@@ -424,6 +470,10 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 					__func__, ret);
 	}
 
+	if (first_panel_power_on)
+		first_panel_power_on = false;
+
+	pr_err("[Display] %s: ---\n", __func__);
 	return ret;
 }
 
@@ -1322,6 +1372,10 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata, int power_state)
 	mdss_dsi_clamp_phy_reset_config(ctrl_pdata, false);
 	mdss_dsi_clk_ctrl(ctrl_pdata, ctrl_pdata->dsi_clk_handle,
 			  MDSS_DSI_CORE_CLK, MDSS_DSI_CLK_OFF);
+
+	g_asus_lcd_power_off = true;
+	msleep(10);
+	fts_ts_suspend();
 
 panel_power_ctrl:
 	ret = mdss_dsi_panel_power_ctrl(pdata, power_state);
@@ -3148,6 +3202,10 @@ static struct device_node *mdss_dsi_pref_prim_panel(
  *
  * returns pointer to panel node on success, NULL on error.
  */
+
+int g_asus_lcdID = -1;
+EXPORT_SYMBOL(g_asus_lcdID);
+
 static struct device_node *mdss_dsi_find_panel_of_node(
 		struct platform_device *pdev, char *panel_cfg)
 {
@@ -3214,6 +3272,13 @@ static struct device_node *mdss_dsi_find_panel_of_node(
 		}
 		pr_info("%s: cmdline:%s panel_name:%s\n",
 			__func__, panel_cfg, panel_name);
+
+		if (strcmp("qcom,mdss_dsi_tm5p5_r63350_1080p_video", panel_name) == 0) {
+			g_asus_lcdID = ARA_LCD_AUO;
+			printk("[Display] LCD ID = ARA AUO\n");
+		}
+		printk("[Display] g_asus_lcdID = %d\n" , g_asus_lcdID);
+
 		if (!strcmp(panel_name, NONE_PANEL))
 			goto exit;
 
@@ -4730,6 +4795,8 @@ int dsi_panel_device_register(struct platform_device *ctrl_pdev,
 
 	panel_debug_register_base("panel",
 		ctrl_pdata->ctrl_base, ctrl_pdata->reg_size);
+
+	g_mdss_pdata = &(ctrl_pdata->panel_data); //ASUS BSP Display
 
 	pr_debug("%s: Panel data initialized\n", __func__);
 	return 0;
