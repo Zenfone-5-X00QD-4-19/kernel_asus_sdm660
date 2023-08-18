@@ -1888,7 +1888,7 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
         goto free_gpio;
     }
 
- //   disable_irq(client->irq);
+    disable_irq_nosync(client->irq);
 
 #if FTS_PSENSOR_EN
     if ( fts_sensor_init(data) != 0)
