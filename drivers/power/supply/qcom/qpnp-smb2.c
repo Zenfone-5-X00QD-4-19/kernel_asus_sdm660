@@ -21,6 +21,72 @@
 #include "storm-watch.h"
 #include <linux/pmic-voter.h>
 
+//ASUS BSP add include files +++
+#include <linux/proc_fs.h>
+#include <linux/of_gpio.h>
+#include <linux/pm_wakeup.h>
+#include <linux/unistd.h>
+#include <linux/fcntl.h>
+#include <linux/slab.h>
+#include <linux/uaccess.h>
+#include <linux/sched.h>
+#include <linux/kernel.h>
+#include <linux/fs.h>
+#include <linux/reboot.h>
+//ASUS BSP add include files ---
+
+// ++++++++++++++++++ ASUS'  DEFINE  VARIABLE  DECLAIRE EXTERN +++++++++++++++++++//
+
+//ASUS BSP : Add debug log +++
+#define CHARGER_TAG "[BAT][CHG]"
+#define ERROR_TAG "[ERR]"
+#define EVENT_TAG 	"[CHG][EVT]"
+#define CHG_DBG(...)  printk(KERN_INFO CHARGER_TAG __VA_ARGS__)
+#define CHG_DBG_EVT(...)  printk(KERN_INFO EVENT_TAG __VA_ARGS__)
+#define CHG_DBG_E(...)  printk(KERN_ERR CHARGER_TAG ERROR_TAG __VA_ARGS__)
+//ex:CHG_DBG("%s: %d\n", __func__, l_result);
+//ASUS BSP : Add debug log ---
+
+//ASUS BSP add struct functions +++
+struct smb_charger *smbchg_dev;
+struct gpio_control *global_gpio;		//global gpio_control
+struct timespec last_jeita_time;
+struct wakeup_source *asus_chg_lock;
+struct wakeup_source *asus_charger_lock;
+//ASUS BSP add struct functions ---
+//ASUS for shipping +++
+bool g_usb_alert_mode=1;				//ASUS_BSP Austin_T : 1 for usb alert mode enable
+//extern bool g_low_impedance_mode;	//ASUS_BSP Austin_T : 1 for low impedance mode enable
+//extern bool g_water_proof_mode;		//ASUS_BSP Austin_T : 1 for water proof mode enable
+volatile bool usb_alert_flag = 0;			// 1 for thermal alert is detected
+bool low_impedance_flag = 0;			// disable
+bool water_once_flag = 0;
+bool boot_completed_flag = 0;			// 1 for boot complete, refer to sys.boot_completed in init.asus.userdebug.rc file
+extern bool asus_flow_done_flag;
+extern bool g_Charger_mode;			//from init/main.c
+int qc_stat_registed = 0;				
+
+int thermal_inov_flag =0;
+#define INOV_TRIGGER		40
+#define INOV_RELEASE		38
+//ASUS for shipping ---
+
+//batt_status_text:  reflect to power_supply.h
+const char *batt_status_text[] = {
+		"UNKNOWN", "CHARGING", "DISCHARGING", "NOT_CHARGING", "FULL","QUICK_CHARGING","NOT_QUICK_CHARGING","Thermal Alert",
+			"10W_QUICK_CHARGING", "10W_NOT_QUICK_CHARGING"
+	};
+
+
+
+extern void smblib_asus_monitor_start(struct smb_charger *chg, int time);
+extern bool asus_get_prop_usb_present(struct smb_charger *chg);
+extern void asus_smblib_stay_awake(struct smb_charger *chg);
+extern void asus_smblib_relax(struct smb_charger *chg);
+
+
+
+// ------------------------- ASUS'  DEFINE  VARIABLE  DECLAIRE EXTERN --------------------------//
 #define SMB2_DEFAULT_WPWR_UW	8000000
 
 static struct smb_params v1_params = {
@@ -56,7 +122,7 @@ static struct smb_params v1_params = {
 		.name	= "usb otg current limit",
 		.reg	= OTG_CURRENT_LIMIT_CFG_REG,
 		.min_u	= 250000,
-		.max_u	= 2000000,
+		.max_u	= 750000,
 		.step_u	= 250000,
 	},
 	.dc_icl			= {
@@ -248,6 +314,8 @@ ATTRIBUTE_GROUPS(smb2);
 
 #define MICRO_1P5A		1500000
 #define MICRO_P1A		100000
+#define MICRO_P75A		750000
+#define MICRO_P5A		500000
 #define OTG_DEFAULT_DEGLITCH_TIME_MS	50
 #define MIN_WD_BARK_TIME		16
 #define DEFAULT_WD_BARK_TIME		64
@@ -282,6 +350,11 @@ static int smb2_parse_dt(struct smb2 *chip)
 	chip->dt.no_battery = of_property_read_bool(node,
 						"qcom,batteryless-platform");
 
+	if(chip->dt.no_battery){
+		chip->dt.no_battery=0;	
+		CHG_DBG("set qcom,batteryless-platform as %d\n",chip->dt.no_battery);
+	}
+
 	chip->dt.no_pd = of_property_read_bool(node,
 						"qcom,pd-not-supported");
 
@@ -303,7 +376,7 @@ static int smb2_parse_dt(struct smb2 *chip)
 	rc = of_property_read_u32(node,
 				"qcom,otg-cl-ua", &chg->otg_cl_ua);
 	if (rc < 0)
-		chg->otg_cl_ua = MICRO_1P5A;
+		chg->otg_cl_ua = MICRO_P75A;
 
 	rc = of_property_read_u32(node,
 				"qcom,dc-icl-ua", &chip->dt.dc_icl_ua);
@@ -1215,9 +1288,6 @@ static int smb2_batt_set_prop(struct power_supply *psy,
 	struct smb_charger *chg = power_supply_get_drvdata(psy);
 
 	switch (prop) {
-	case POWER_SUPPLY_PROP_STATUS:
-		rc = smblib_set_prop_batt_status(chg, val);
-		break;
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
 		rc = smblib_set_prop_input_suspend(chg, val);
 		break;
@@ -2441,10 +2511,119 @@ static void smb2_create_debugfs(struct smb2 *chip)
 
 #endif
 
+void asus_probe_pmic_settings(struct smb_charger *chg)
+{
+	int rc;
+
+//A-1:0x1365
+	rc = smblib_masked_write(chg, USBIN_LOAD_CFG_REG,
+			ICL_OVERRIDE_AFTER_APSD_BIT, ICL_OVERRIDE_AFTER_APSD_BIT);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default USBIN_LOAD_CFG_REG rc=%d\n", rc);
+	}
+//A-2:0x1370
+	rc = smblib_write(chg, USBIN_CURRENT_LIMIT_CFG_REG, 0x28);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default USBIN_CURRENT_LIMIT_CFG_REG rc=%d\n", rc);
+	}
+//A-3:0x1061
+	rc = smblib_write(chg, FAST_CHARGE_CURRENT_CFG_REG, 0x3B);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default FAST_CHARGE_CURRENT_CFG_REG rc=%d\n", rc);
+	}
+//A-4:0x1070
+	rc = smblib_write(chg, FLOAT_VOLTAGE_CFG_REG, 0x74);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default FLOAT_VOLTAGE_CFG_REG rc=%d\n", rc);
+	}
+//A-5:0x1063
+	rc = smblib_masked_write(chg, TCCC_CHARGE_CURRENT_TERMINATION_CFG_REG,
+			TCCC_CHARGE_CURRENT_TERMINATION_SETTING_MASK, 0x02);
+	if (rc < 0) {
+			dev_err(chg->dev, "Couldn't set default TCCC_CHARGE_CURRENT rc=%d\n", rc);
+		}
+//A-6:0x1060
+	rc = smblib_masked_write(chg, PRE_CHARGE_CURRENT_CFG_REG,
+			PRE_CHARGE_CURRENT_SETTING_MASK, 0x0B);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default PRE_CHARGE_CURRENT rc=%d\n", rc);
+	}
+//A-7:0x1359
+	rc = smblib_masked_write(chg, TYPE_C_CFG_2_REG,
+			EN_80UA_180UA_CUR_SOURCE_BIT, EN_80UA_180UA_CUR_SOURCE_BIT);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default TYPE_C_CFG_2_REG rc=%d\n", rc);
+	}
+//A-8:0x1152
+	rc = smblib_masked_write(chg, OTG_CURRENT_LIMIT_CFG_REG,
+			OTG_CURRENT_LIMIT_MASK, 0x02);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default OTG_CURRENT_LIMIT_CFG_REG rc=%d\n", rc);
+	}
+//K-1:0x1090
+	rc = smblib_write(chg, JEITA_EN_CFG_REG, 0x1F);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default JEITA_EN_CFG_REG rc=%d\n", rc);
+	}
+//K-2:0x1091
+	rc = smblib_write(chg, JEITA_FVCOMP_CFG_REG, 0x22);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default JEITA_FVCOMP_CFG_REG rc=%d\n", rc);
+	}
+//K-3:0x1092
+	rc = smblib_write(chg, JEITA_CCCOMP_CFG_REG, 0x18);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default JEITA_CCCOMP_CFG_REG rc=%d\n", rc);
+	}
+//Disable INOV:0x1670
+/*
+	rc = smblib_write(chg, THERMREG_SRC_CFG_REG, 0x00);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't set default THERMREG_SRC_CFG_REG rc=%d\n", rc);
+	}
+*/
+
+//WeiYu: setting inov ++
+	smblib_write(chg, SKIN_HOT_REG, (INOV_RELEASE+30)*2);
+	smblib_write(chg, SKIN_TOO_HOT_REG, (INOV_TRIGGER+30)*2);
+//WeiYu: setting inov --
+
+}
+
+//ASUS BSP : Request ADC_SW_EN, ADCPWREN_PMI_GP1 +++
+void asus_regist_adc_gpios(struct platform_device *pdev){
+
+	struct gpio_control *gpio_ctrl= global_gpio;
+	int rc=0;
+	
+	gpio_ctrl->ADC_SW_EN = of_get_named_gpio(pdev->dev.of_node, "ADC_SW_EN-gpios59", 0);
+	rc = gpio_request(gpio_ctrl->ADC_SW_EN, "ADC_SW_EN-gpios59");
+	if (rc)
+		CHG_DBG_E("%s: failed to request ADC_SW_EN-gpios59\n", __func__);
+	else
+		CHG_DBG("%s: Success to request ADC_SW_EN-gpios59 %d\n", __func__,(int)gpio_ctrl->ADC_SW_EN);
+
+	gpio_ctrl->ADCPWREN_PMI_GP1 = of_get_named_gpio(pdev->dev.of_node, "ADCPWREN_PMI_GP1-gpios34", 0);
+	rc = gpio_request(gpio_ctrl->ADCPWREN_PMI_GP1, "ADCPWREN_PMI_GP1-gpios34");
+	if (rc)
+		CHG_DBG_E("%s: failed to request ADCPWREN_PMI_GP1-gpios34\n", __func__);
+	else
+		CHG_DBG("%s: Success to request ADCPWREN_PMI_GP1-gpios34 %d\n", __func__,(int)gpio_ctrl->ADCPWREN_PMI_GP1);
+
+	if(!rc)
+		gpio_direction_output(gpio_ctrl->ADCPWREN_PMI_GP1, 0);
+	rc = gpio_get_value(gpio_ctrl->ADCPWREN_PMI_GP1);
+	CHG_DBG("ADCPWREN_PMI_GP1 init H/L %d\n",rc);
+
+
+}
+//ASUS BSP : Request ADC_SW_EN, ADCPWREN_PMI_GP1 ---
+
 static int smb2_probe(struct platform_device *pdev)
 {
 	struct smb2 *chip;
 	struct smb_charger *chg;
+	struct gpio_control *gpio_ctrl;
 	int rc = 0;
 	union power_supply_propval val;
 	int usb_present, batt_present, batt_health, batt_charge_type;
@@ -2452,6 +2631,12 @@ static int smb2_probe(struct platform_device *pdev)
 	chip = devm_kzalloc(&pdev->dev, sizeof(*chip), GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;
+
+//ASUS BSP allocate GPIO control +++
+	gpio_ctrl = devm_kzalloc(&pdev->dev, sizeof(*gpio_ctrl), GFP_KERNEL);
+	if (!gpio_ctrl)
+		return -ENOMEM;
+//ASUS BSP allocate GPIO control ---
 
 	chg = &chip->chg;
 	chg->dev = &pdev->dev;
@@ -2463,6 +2648,12 @@ static int smb2_probe(struct platform_device *pdev)
 	chg->irq_info = smb2_irqs;
 	chg->die_health = -EINVAL;
 	chg->name = "PMI";
+
+	asus_chg_lock = wakeup_source_register(NULL, "asus_chg_lock");
+	asus_charger_lock = wakeup_source_register(NULL, "asus_charger_soft_start_lock");
+	smbchg_dev = chg;			//ASUS BSP add globe device struct +++
+	global_gpio = gpio_ctrl;	//ASUS BSP add gpio control struct +++
+
 	chg->audio_headset_drp_wait_ms = &__audio_headset_drp_wait_ms;
 
 	chg->regmap = dev_get_regmap(chg->dev->parent, NULL);
@@ -2578,6 +2769,16 @@ static int smb2_probe(struct platform_device *pdev)
 		goto cleanup;
 	}
 
+////ASUS FEATURES +++
+
+	//WeiYu: handle asus gpio settings +++	
+	asus_regist_adc_gpios(pdev);
+	//WeiYu: handle asus gpio settings ---
+
+	asus_probe_pmic_settings(chg);
+
+////ASUS FEATURES ---
+
 	smb2_create_debugfs(chip);
 
 	rc = smblib_get_prop_usb_present(chg, &val);
@@ -2644,6 +2845,38 @@ cleanup:
 	return rc;
 }
 
+//ASUS BSP Austin_T : Add suspend/resume function +++
+#define JEITA_MINIMUM_INTERVAL (30)
+static int smb2_resume(struct device *dev)
+{
+	struct timespec mtNow;
+	int nextJEITAinterval;
+
+	if (!asus_get_prop_usb_present(smbchg_dev)) {
+		return 0;
+	}
+
+	if(!asus_flow_done_flag)
+		return 0;
+
+	asus_smblib_stay_awake(smbchg_dev);
+	mtNow = current_kernel_time();
+
+	/*BSP Austin_Tseng: if next JEITA time less than 30s, do JEITA
+			(next JEITA time = last JEITA time + 60s)*/
+	nextJEITAinterval = 60 - (mtNow.tv_sec - last_jeita_time.tv_sec);
+	CHG_DBG("%s: nextJEITAinterval = %d\n", __func__, nextJEITAinterval);
+	if (nextJEITAinterval <= JEITA_MINIMUM_INTERVAL) {
+		smblib_asus_monitor_start(smbchg_dev, 0);
+		cancel_delayed_work(&smbchg_dev->asus_batt_RTC_work);
+	} else {
+		smblib_asus_monitor_start(smbchg_dev, nextJEITAinterval * 1000);
+		asus_smblib_relax(smbchg_dev);
+	}
+	return 0;
+}
+//ASUS BSP Austin_T : Add suspend/resume function +++
+
 static int smb2_remove(struct platform_device *pdev)
 {
 	struct smb2 *chip = platform_get_drvdata(pdev);
@@ -2683,6 +2916,10 @@ static void smb2_shutdown(struct platform_device *pdev)
 				 AUTO_SRC_DETECT_BIT, AUTO_SRC_DETECT_BIT);
 }
 
+static const struct dev_pm_ops smb2_pm_ops = {
+	.resume		= smb2_resume,
+};
+
 static const struct of_device_id match_table[] = {
 	{ .compatible = "qcom,qpnp-smb2", },
 	{ },
@@ -2692,6 +2929,7 @@ static struct platform_driver smb2_driver = {
 	.driver		= {
 		.name		= "qcom,qpnp-smb2",
 		.of_match_table	= match_table,
+		.pm			= &smb2_pm_ops,
 	},
 	.probe		= smb2_probe,
 	.remove		= smb2_remove,
