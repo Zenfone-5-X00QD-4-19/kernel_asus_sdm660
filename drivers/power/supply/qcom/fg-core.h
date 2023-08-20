@@ -78,7 +78,7 @@
 
 #define DEBUG_BOARD_VOTER	"fg_debug_board"
 
-#define BUCKET_COUNT			8
+#define BUCKET_COUNT			20 //ASUS_BSP battery safety upgrade
 #define BUCKET_SOC_PCT			(256 / BUCKET_COUNT)
 
 #define MAX_CC_STEPS			20
@@ -449,6 +449,7 @@ struct fg_dev {
 	struct mutex		bus_lock;
 	struct mutex		sram_rw_lock;
 	struct mutex		charge_full_lock;
+	struct mutex		charge_status_lock; //ASUS_BSP
 	struct mutex		qnovo_esr_ctrl_lock;
 	spinlock_t		suspend_lock;
 	spinlock_t		awake_lock;
@@ -479,6 +480,7 @@ struct fg_dev {
 	bool			battery_missing;
 	bool			fg_restarting;
 	bool			charge_full;
+	bool			reporting_charge_full; //ASUS_BSP
 	bool			recharge_soc_adjusted;
 	bool			soc_reporting_ready;
 	bool			use_ima_single_mode;
@@ -497,7 +499,78 @@ struct fg_dev {
 	struct work_struct	esr_filter_work;
 	struct alarm		esr_filter_alarm;
 	ktime_t			last_delta_temp_time;
+//ASUS_BSP battery safety upgrade +++
+	unsigned long condition1_battery_time;
+	unsigned long condition2_battery_time;
+	int condition1_cycle_count;
+	int condition2_cycle_count;
+	unsigned long condition1_temp_vol_time;
+	unsigned long condition2_temp_vol_time;
+	unsigned long condition1_temp_time;
+	unsigned long condition2_temp_time;
+	unsigned long condition1_vol_time;
+	unsigned long condition2_vol_time;
+//ASUS_BSP battery safety upgrade ---
 };
+
+//ASUS_BSP battery safety upgrade +++
+/* Cycle Count Date Structure saved in emmc
+ * magic - magic number for data verification
+ * charge_cap_accum - Accumulated charging capacity
+ * charge_last_soc - last saved soc before reset/shutdown
+ * [0]:battery_soc [1]:system_soc [2]:monotonic_soc
+ */
+struct CYCLE_COUNT_DATA{
+	int magic;
+	int cycle_count;
+	unsigned long battery_total_time;
+	unsigned long high_vol_total_time;
+	unsigned long high_temp_total_time;
+	unsigned long high_temp_vol_time;
+	u32 reload_condition;
+};
+
+#define HIGH_TEMP   350
+#define HIGHER_TEMP 450
+#define FULL_CAPACITY_VALUE 100
+#define BATTERY_USE_TIME_CONDITION1  (12*30*24*60*60) //12Months
+#define BATTERY_USE_TIME_CONDITION2  (18*30*24*60*60) //18Months
+#define CYCLE_COUNT_CONDITION1  100
+#define CYCLE_COUNT_CONDITION2  400
+#define HIGH_TEMP_VOL_TIME_CONDITION1 (15*24*60*60)  //15Days
+#define HIGH_TEMP_VOL_TIME_CONDITION2 (30*24*60*60)  //30Days
+#define HIGH_TEMP_TIME_CONDITION1     (6*30*24*60*60) //6Months
+#define HIGH_TEMP_TIME_CONDITION2     (12*30*24*60*60) //12Months
+#define HIGH_VOL_TIME_CONDITION1     (6*30*24*60*60) //6Months
+#define HIGH_VOL_TIME_CONDITION2     (12*30*24*60*60) //12Months
+
+enum calculation_time_type {
+	TOTOL_TIME_CAL_TYPE,
+	HIGH_VOL_CAL_TYPE,
+	HIGH_TEMP_CAL_TYPE,
+	HIGH_TEMP_VOL_CAL_TYPE,
+};
+//ASUS_BSP battery safety upgrade ---
+
+//ASUS_BS battery health upgrade +++
+#define BAT_HEALTH_NUMBER_MAX 21
+struct BAT_HEALTH_DATA{
+	int magic;
+	int bat_current;
+	unsigned long long bat_current_avg;
+	unsigned long long accumulate_time; //second
+	unsigned long long accumulate_current; //uA
+	int bat_health;
+	unsigned long start_time;
+	unsigned long end_time;
+	
+};
+struct BAT_HEALTH_DATA_BACKUP{
+    char date[20];
+    int health;
+};
+//ASUS_BS battery health upgrade ---
+
 
 /* Debugfs data structures are below */
 

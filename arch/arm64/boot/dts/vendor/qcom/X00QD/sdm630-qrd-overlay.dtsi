@@ -1,12 +1,14 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
 &qrd_batterydata {
-		#include "fg-gen3-batterydata-coslight-C11P1708-3150mah_4p35v.dtsi"
-		#include "fg-gen3-batterydata-qrd-skuk-4v4-3000mah.dtsi"
+	#include "fg-gen3-batterydata-coslight-C11P1708-3150mah_4p35v.dtsi"
+	#include "fg-gen3-batterydata-qrd-skuk-4v4-3000mah.dtsi"
 };
 
 &pm660_fg {
+	qcom,battery-data = <&qrd_batterydata>;
 	qcom,fg-jeita-thresholds = <0 10 50 60>;
+	qcom,battery-thermal-coefficients = [9d 50 ff];
 	qcom,fg-cutoff-voltage = <3400>; //ASUS BSP : LiJen Battery
 	qcom,fg-empty-voltage = <2800>; //ASUS BSP : LiJen Battery
 	qcom,fg-cutoff-current = <100>; //ASUS BSP : LiJen fine tune msoc for low temperature 
@@ -23,17 +25,4 @@
 
 &sdhc_2 {
 	qcom,vdd-voltage-level = <3300000 3300000>;
-};
-
-&pm660_charger {
-	pinctrl-names = "ALT_gpio_low", "ALT_gpio_default";
-	pinctrl-0 = <&thermal_alert_suspend>;
-	pinctrl-1 = <&thermal_alert_active>;
-	ADC_SW_EN-gpios59 = <&tlmm 71 0x0>;
-	ADCPWREN_PMI_GP1-gpios34 = <&tlmm 3 0x0>;
-	USB_THERMAL_ALERT-gpios52 = <&tlmm 52 0x0>;
-
-	USB_LOW_IMPEDANCE-gpios77 = <&tlmm 77 0x0>; //disable in driver
-	USB_LID_EN-gpios71 = <&tlmm 71 0x0>;                        //disable in driver
-	USB_WATER_PROOF-gpios73 = <&tlmm 73 0x0>;        //disable in driver
 };
