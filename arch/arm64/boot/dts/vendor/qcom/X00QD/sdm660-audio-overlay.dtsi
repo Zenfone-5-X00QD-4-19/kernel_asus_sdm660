@@ -27,8 +27,4 @@
 &wsa_spkr_en2 {
 	status = "disabled";
 };
-
-&pm660_gpios {
-	/delete-node/ gpio@c200;
-};
 	
