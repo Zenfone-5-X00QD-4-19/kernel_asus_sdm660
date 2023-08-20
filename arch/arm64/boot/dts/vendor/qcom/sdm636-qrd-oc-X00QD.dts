@@ -71,3 +71,8 @@
 		qcom,afe-power-off-delay-us = <6>;
 	};
 };
+
+&pm660_charger {
+       ADC_SW_EN-gpios59 = <&tlmm 71 0x0>;
+       ADCPWREN_PMI_GP1-gpios34 = <&tlmm 3 0x0>;
+};
