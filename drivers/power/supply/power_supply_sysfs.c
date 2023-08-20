@@ -55,7 +55,8 @@ static const char * const power_supply_usb_type_text[] = {
 };
 
 static const char * const power_supply_status_text[] = {
-	"Unknown", "Charging", "Discharging", "Not charging", "Full"
+	"Unknown", "Charging", "Discharging", "Not charging", "Full","Quick charging","Not Quick charging", "Thermal Alert",
+		"10W Quick charging","Not 10W Quick charging"
 };
 
 static const char * const power_supply_charge_type_text[] = {
