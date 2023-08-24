@@ -11,6 +11,8 @@
 		qcom,switch-source = <&pm660l_switch0>;
 		status = "ok";
 	};
+
+	/delete-node/ cam_rear_dvdd_fixed_regulator;
 };
 
 &cci {
