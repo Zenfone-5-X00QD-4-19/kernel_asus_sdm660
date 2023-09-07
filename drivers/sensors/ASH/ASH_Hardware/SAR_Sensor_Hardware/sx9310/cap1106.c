@@ -43,15 +43,15 @@ DEFINE_TIMER(Cap_timer, Cap_timer_expired, 0, 0);
 
 #if PROX_SENSOR_DEBUG
 #define PROX_DEBUG(format, arg...)	\
-	printk(KERN_INFO "CAP1106: [%s] " format , __FUNCTION__ ,  ## arg)
+	pr_debug(KERN_INFO "CAP1106: [%s] " format , __FUNCTION__ ,  ## arg)
 #else
 #define PROX_DEBUG(format, arg...)
 #endif
 
 #define PROX_INFO(format, arg...)       \
-    printk(KERN_INFO "CAP1106: [%s] " format , __FUNCTION__ , ## arg)
+    pr_debug(KERN_INFO "CAP1106: [%s] " format , __FUNCTION__ , ## arg)
 #define PROX_ERROR(format, arg...)      \
-    printk(KERN_ERR "CAP1106: [%s] " format , __FUNCTION__ , ## arg)
+    pr_debug(KERN_ERR "CAP1106: [%s] " format , __FUNCTION__ , ## arg)
 
 #define CAP1106_DRV_NAME	"cap1106_proximity_sensor"
 
@@ -128,13 +128,13 @@ void Check_BalanceMode(int IsBalanceMode)
 		cap1106_write_reg(g_cap1106_data_as->client, 0x00, (reg_value & 0xEF) | (1 << 4));
 		enter_state(inited_state);
 		flag = 1;
-		printk("[CapSensor] Now in balance mode 2, disable Cap\n");
+		pr_debug("[CapSensor] Now in balance mode 2, disable Cap\n");
 	} else {
 		if (1 == flag) {
 			enter_state(running_state);
 			queue_delayed_work(cap1106_workqueue, &cap_init_delay_work, 0);
 			flag = 0;
-			printk("[CapSensor] Now leave balance mode 2, enable Cap\n");
+			pr_debug("[CapSensor] Now leave balance mode 2, enable Cap\n");
 		}
 	}
 }
@@ -162,10 +162,10 @@ static int cap1106_sensor_dsleep(struct i2c_client *client)
 	for (bIdx = 0; bIdx < sizeof(InitTable) / sizeof(InitTable[0]); bIdx += 2) {
 		rc = i2c_smbus_write_byte_data(client, InitTable[bIdx], InitTable[bIdx + 1]);
 		if (rc) {
-			printk("=== Write Error, rc=0x%X\n", rc);
+			pr_debug("=== Write Error, rc=0x%X\n", rc);
 			break;
 		} else {
-			printk("[CapSensor] set 0x%x, data = %x\n", InitTable[bIdx], InitTable[bIdx + 1]);
+			pr_debug("[CapSensor] set 0x%x, data = %x\n", InitTable[bIdx], InitTable[bIdx + 1]);
 		}
 	}
 	return rc;
@@ -183,10 +183,10 @@ static int cap1106_sensor_active(struct i2c_client *client)
 	for (bIdx = 0; bIdx < sizeof(InitTable) / sizeof(InitTable[0]); bIdx += 2) {
 		rc = i2c_smbus_write_byte_data(client, InitTable[bIdx], InitTable[bIdx + 1]);
 		if (rc) {
-			printk("[CapSensor]=== Write Error, rc=0x%X\n", rc);
+			pr_debug("[CapSensor]=== Write Error, rc=0x%X\n", rc);
 			break;
 		} else {
-			printk("[CapSensor] set 0x%x, data = %x\n", InitTable[bIdx], InitTable[bIdx + 1]);
+			pr_debug("[CapSensor] set 0x%x, data = %x\n", InitTable[bIdx], InitTable[bIdx + 1]);
 		}
 	}
 	return rc;
@@ -562,9 +562,9 @@ static int cap1106_init(struct device *dev, struct device_attribute *attr, char 
 {
 	int lux = 0;
 
-	printk("[CapSensor]CAP1106 +++ init \n");
+	pr_debug("[CapSensor]CAP1106 +++ init \n");
 	lux = init_sensor(g_cap1106_data_as->client);
-	printk("[CapSensor]CAP1106 --- init \n");
+	pr_debug("[CapSensor]CAP1106 --- init \n");
 
 	return 1;
 }
@@ -573,9 +573,9 @@ static int cap1106_active(struct device *dev, struct device_attribute *attr, cha
 {
 	int lux = 0;
 
-	printk("CAP1106 +++ sensor active");
+	pr_debug("CAP1106 +++ sensor active");
 	lux = cap1106_sensor_active(g_cap1106_data_as->client);
-	printk("CAP1106 --- sensor active");
+	pr_debug("CAP1106 --- sensor active");
 
 	return 1;
 }
@@ -584,9 +584,9 @@ static int cap1106_dsleep(struct device *dev, struct device_attribute *attr, cha
 {
 	int lux = 0;
 
-	printk("CAP1106 +++ sensor dsleep");
+	pr_debug("CAP1106 +++ sensor dsleep");
 	lux = cap1106_sensor_dsleep(g_cap1106_data_as->client);
-	printk("CAP1106 --- sensor dsleep");
+	pr_debug("CAP1106 --- sensor dsleep");
 
 	return 1;
 }
@@ -874,7 +874,7 @@ static void enter_state(int  state)
 		} else if (state == suspending_state) {
 			cap_status = suspending_state;
 		} else {
-			printk("[CapSensor] %s error state : inited to inited\n", __FUNCTION__);
+			pr_debug("[CapSensor] %s error state : inited to inited\n", __FUNCTION__);
 		}
 		break;
 
@@ -884,7 +884,7 @@ static void enter_state(int  state)
 		} else if (state == suspending_state) {
 			cap_status = suspending_state;
 		} else {
-			printk("[CapSensor] %s error state : running to running\n", __FUNCTION__);
+			pr_debug("[CapSensor] %s error state : running to running\n", __FUNCTION__);
 		}
 		break;
 
@@ -894,12 +894,12 @@ static void enter_state(int  state)
 		} else if (state == running_state) {
 			cap_status = running_state;
 		} else {
-			printk("[CapSensor] %s error state : suspending to suspending\n", __FUNCTION__);
+			pr_debug("[CapSensor] %s error state : suspending to suspending\n", __FUNCTION__);
 		}
 		break;
 	}
 	mutex_unlock(&state_mtx);
-	printk("[CapSensor] %s cap_status = %d\n", __FUNCTION__, cap_status);
+	pr_debug("[CapSensor] %s cap_status = %d\n", __FUNCTION__, cap_status);
 }
 
 static void cap1106_work_function(struct work_struct *work)
@@ -931,7 +931,7 @@ static void cap1106_work_function(struct work_struct *work)
 	value_delta_5 = cap1106_read_reg(g_cap1106_data_as->client, 0x14);
 	bc3 = cap1106_read_reg(g_cap1106_data_as->client, 0x52);
 	bc5 = cap1106_read_reg(g_cap1106_data_as->client, 0x54);
-	printk("Status: 0x%02X, BC3=0x%02X, D3=0x%02X, BC5=0x%02X, D5=0x%02X\n", status, bc3, value_delta_3, bc5, value_delta_5);
+	pr_debug("Status: 0x%02X, BC3=0x%02X, D3=0x%02X, BC5=0x%02X, D5=0x%02X\n", status, bc3, value_delta_3, bc5, value_delta_5);
 if (!test_mode) {
 	if (0 == is_wood_sensitivity) {
 		data->obj_detect = ((0x4 == status) || (0x10 == status) || (0x14 == status));
@@ -981,7 +981,7 @@ static int init_sensor(struct i2c_client *client)
 	for (bIdx = 0; bIdx < InitTableSize; bIdx += 2) {
 		rc = i2c_smbus_write_byte_data(g_cap1106_data_as->client, InitTable[bIdx], InitTable[bIdx + 1]);
 		if (rc) {
-			printk("[CapSensor]=== Write Error, rc=0x%X\n", rc);
+			pr_debug("[CapSensor]=== Write Error, rc=0x%X\n", rc);
 			break;
 		}
 	}
@@ -1024,7 +1024,7 @@ static void cap1106_init_sensor(struct work_struct *work)
 	for (bIdx = 0; bIdx < InitTableSize; bIdx += 2) {
 		rc = i2c_smbus_write_byte_data(g_cap1106_data_as->client, InitTable[bIdx], InitTable[bIdx + 1]);
 		if (rc) {
-			printk("[CapSensor]=== Write Error, rc=0x%X\n", rc);
+			pr_debug("[CapSensor]=== Write Error, rc=0x%X\n", rc);
 			break;
 		}
 	}
@@ -1040,7 +1040,7 @@ static void cap1106_init_sensor(struct work_struct *work)
 	}
 
 	if (bodysar_disable) {
-		printk("[CapSensor] Disable bodysar\n");
+		pr_debug("[CapSensor] Disable bodysar\n");
 		rc = cap1106_sensor_dsleep(g_cap1106_data_as->client);
 		Cap_onEvent(body_undetect);
 	}
@@ -1121,7 +1121,7 @@ static void cap1106_checking_work_function(struct work_struct *work)
 		no_suspend = 0;
 	}
 
-/*	printk("c3_acc_cnt=%d, c5_acc_cnt=%d, no_suspend = %d\n", c3_acc_cnt, c5_acc_cnt, no_suspend);*/
+/*	pr_debug("c3_acc_cnt=%d, c5_acc_cnt=%d, no_suspend = %d\n", c3_acc_cnt, c5_acc_cnt, no_suspend);*/
 	if (c3_acc_cnt >= acc_limit || c5_acc_cnt >= acc_limit) {
 		PROX_DEBUG("+++ FORCE RECALIBRATION +++\n");
 		cap1106_write_reg(g_cap1106_data_as->client, 0x26, 0x14);
@@ -1142,14 +1142,14 @@ static int cap1106_get_value(struct i2c_client *client)
 {
 	int err1, err2;
 	int result = 0;
-	printk("++cap1106_get_value \n");
+	pr_debug("++cap1106_get_value \n");
 
 	mutex_lock(&g_cap1106_data_as->lock);
 
 	err1 = i2c_smbus_read_byte_data(client, 0x00);
-	printk("cap1106_get_value: reg (0x00) = 0x%x\n", err1);
+	pr_debug("cap1106_get_value: reg (0x00) = 0x%x\n", err1);
 	err2 = i2c_smbus_write_byte_data(client, 0x1f, 0x1f);
-	printk("cap1106_get_value: reg (0x1f) = 0x%x\n", err2);
+	pr_debug("cap1106_get_value: reg (0x1f) = 0x%x\n", err2);
 
 	if (err1 < 0) {
 		result = err1;
@@ -1202,39 +1202,39 @@ static int capsensor_pad_mp_event(struct notifier_block *this, unsigned long eve
 {
 	switch (event) {
 	case P01_ADD:
-		printk("[CapSensor][MicroP] CAP_P01_ADD \r\n");
+		pr_debug("[CapSensor][MicroP] CAP_P01_ADD \r\n");
 		HWID = AX_MicroP_getHWID();
 /*		PadModel = AX_MicroP_getPadModel();	*/
 		padfone = 1;
-		printk("[Cap1106] PadModel = %d  \r\n", PadModel);
+		pr_debug("[Cap1106] PadModel = %d  \r\n", PadModel);
 /*		if (1 == PadModel) {	*/
 			queue_delayed_work(cap1106_workqueue, &cap_init_delay_work, 2 * HZ);
 /*		} else {
-			printk("[Cap1106] Not P73L!!Cap disable. \r\n");
+			pr_debug("[Cap1106] Not P73L!!Cap disable. \r\n");
 		}	*/
 		return NOTIFY_DONE;
 
 	case P01_REMOVE:
 		padfone = 0;
 /*		if (1 == PadModel) {	*/
-			printk("[CapSensor][MicroP] CAP_P01_REMOVE \r\n");
+			pr_debug("[CapSensor][MicroP] CAP_P01_REMOVE \r\n");
 			enter_state(inited_state);
 /*		} else {
-			printk("[Cap1106] Not P73L!!Cap disable. \r\n");
+			pr_debug("[Cap1106] Not P73L!!Cap disable. \r\n");
 		}	*/
 		return NOTIFY_DONE;
 
 	case P01_PROXM_SENSOR:
 		if (running_state == cap_status) {
 /*			if (1 == PadModel) {	*/
-				printk("[CapSensor][MicroP] PAD_CAP_SENSOR_STATUS_CHANGE \r\n");
+				pr_debug("[CapSensor][MicroP] PAD_CAP_SENSOR_STATUS_CHANGE \r\n");
 				if (AX_MicroP_IsP01Connected())	{
 					queue_delayed_work(cap1106_workqueue, &g_cap1106_data_as->cap1106_work, 0 * HZ);
 				} else {
-					printk("[CapSensor] Inerrupt error \r\n");
+					pr_debug("[CapSensor] Inerrupt error \r\n");
 				}
 /*			} else {
-				printk("[Cap1106] Not P73L!!Cap disable. \r\n");
+				pr_debug("[Cap1106] Not P73L!!Cap disable. \r\n");
 			}	*/
 		}
 		return NOTIFY_DONE;
@@ -1255,7 +1255,7 @@ static int cap1106_probe(struct i2c_client *client, const struct i2c_device_id *
 	int err = 0;
 
 	/*......................................init port......................................*/
-	printk("[Progress][cap1106] Probe starts \n");
+	pr_debug("[Progress][cap1106] Probe starts \n");
 
 	cap1106_workqueue = create_singlethread_workqueue("cap1106_wq");
 	if (!cap1106_workqueue) {
@@ -1324,18 +1324,18 @@ static int cap1106_probe(struct i2c_client *client, const struct i2c_device_id *
 #endif
 
 	g_cap1106_data_as->overflow_status = 0x0;
-	printk("[Progress][cap1106] Probe ends \n");
+	pr_debug("[Progress][cap1106] Probe ends \n");
 	return 0;
 
 exit_kfree:
 	kfree(g_cap1106_data_as);
-	printk("[CapSensor]--cap1106_probe fail : %d\n", err);
-	printk("[Progress][cap1106] Probe fails \n");
+	pr_debug("[CapSensor]--cap1106_probe fail : %d\n", err);
+	pr_debug("[Progress][cap1106] Probe fails \n");
 	return err;
 
 err_register_switch_class_failed:
 	sysfs_remove_group(&g_cap1106_data_as->client->dev.kobj, &cap1106_attr_group);
-	printk("[Progress][cap1106] Probe fails \n");
+	pr_debug("[Progress][cap1106] Probe fails \n");
 	return err;
 }
 
@@ -1353,7 +1353,7 @@ static int cap1106_remove(struct i2c_client *client)
 static int cap1106_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	if (cap_status != inited_state) {
-		printk("[CapSensor]!!! %s HWID = %d !!!\n", __FUNCTION__, HWID);
+		pr_debug("[CapSensor]!!! %s HWID = %d !!!\n", __FUNCTION__, HWID);
 /*		enter_state(suspending_state); */
 		if (0 == HWID) {
 			return 0;
@@ -1373,10 +1373,10 @@ static int cap1106_suspend(struct i2c_client *client, pm_message_t mesg)
 static int cap1106_resume(struct i2c_client *client)
 {
 	if (cap_status != inited_state) {
-		printk("[CapSensor]!!! %s HWID = %d !!!\n", __FUNCTION__, HWID);
+		pr_debug("[CapSensor]!!! %s HWID = %d !!!\n", __FUNCTION__, HWID);
 /*		enter_state(running_state); */
 		if (0 == HWID) {
-			printk("[CapSensor]%s cap_status = %d\n", __FUNCTION__, cap_status);
+			pr_debug("[CapSensor]%s cap_status = %d\n", __FUNCTION__, cap_status);
 			queue_delayed_work(cap1106_workqueue, &g_cap1106_data_as->cap1106_work, 0);
 			queue_delayed_work(cap1106_workqueue, &g_cap1106_data_as->cap1106_checking_work, 0);
 			return 0;
