@@ -18,27 +18,19 @@ enum FP_MODE{
 };
 
 #define SUPPORT_NAV_EVENT
-//#define DELAY_POWER_ON
 
-/* Huaqin add define for fingerprint nav-keycode by leiyu at 2018/04/12 start */
-#define GF_NAV_INPUT_UP			FP_KEY_UP
-#define GF_NAV_INPUT_DOWN		FP_KEY_DOWN
-#define GF_NAV_INPUT_LEFT		FP_KEY_LEFT
-#define GF_NAV_INPUT_RIGHT		FP_KEY_RIGHT
-#define GF_NAV_INPUT_CLICK		FP_KEY_CLICK
-#define GF_NAV_INPUT_DOUBLE_CLICK	FP_KEY_DOUBLE_CLICK
-#define GF_NAV_INPUT_LONG_PRESS		FP_KEY_LONG_PRESS
+#if defined(SUPPORT_NAV_EVENT)
+#define GF_NAV_INPUT_UP			KEY_UP  //103
+#define GF_NAV_INPUT_DOWN		KEY_DOWN //108
+#define GF_NAV_INPUT_LEFT		KEY_LEFT  //105
+#define GF_NAV_INPUT_RIGHT		KEY_RIGHT //106
+#define GF_NAV_INPUT_CLICK		KEY_F17  //187
+#define GF_NAV_INPUT_DOUBLE_CLICK	KEY_F18  //188
+#define GF_NAV_INPUT_LONG_PRESS		KEY_F19  //189
 #define GF_NAV_INPUT_HEAVY		KEY_CHAT
-/* Huaqin add define for fingerprint nav-keycode by leiyu at 2018/04/12 end */
+#endif
 
-#define GF_KEY_INPUT_HOME			KEY_HOME
-#define GF_KEY_INPUT_MENU			KEY_MENU
-#define GF_KEY_INPUT_BACK			KEY_BACK
-#define GF_KEY_INPUT_POWER			KEY_POWER
-#define GF_KEY_INPUT_CAMERA			KEY_CAMERA
-#define GF_KEY_INPUT_EARLYWAKEUP	KEY_F22
-
-// ASUS_BSP: keycode for fingerprint gestures +++
+//keycode for fingerprint gestures;asus_bsp++
 #define FINGERPRINT_SWIPE_UP 827 // 827
 #define FINGERPRINT_SWIPE_DOWN 828 // 828
 #define FINGERPRINT_SWIPE_LEFT 829 // 829
@@ -46,7 +38,14 @@ enum FP_MODE{
 #define FINGERPRINT_TAP 831 // 831
 #define FINGERPRINT_DTAP 832 // 832
 #define FINGERPRINT_LONGPRESS 833 // 833
-// ASUS_BSP: keycode for fingerprint gestures ---
+//keycode for fingerprint gestures;asus_bsp--
+
+#define GF_KEY_INPUT_HOME		KEY_HOME
+#define GF_KEY_INPUT_MENU		KEY_MENU
+#define GF_KEY_INPUT_BACK		KEY_BACK
+#define GF_KEY_INPUT_POWER		KEY_POWER
+#define GF_KEY_INPUT_CAMERA		KEY_CAMERA
+#define GF_KEY_INPUT_EARLYWAKEUP	KEY_F22
 
 #if defined(SUPPORT_NAV_EVENT)
 typedef enum gf_nav_event {
@@ -149,7 +148,7 @@ struct gf_dev {
 	struct notifier_block notifier;
 	char device_available;
 	char fb_black;
-        struct wakeup_source *fp_wakelock;
+
 	struct regulator *vcc;
 	unsigned int osvcc_ze602kl_enable_pin;
 };
@@ -163,7 +162,7 @@ int gf_power_off(struct gf_dev *gf_dev);
 int gf_hw_reset(struct gf_dev *gf_dev, unsigned int delay_ms);
 int gf_irq_num(struct gf_dev *gf_dev);
 
-void sendnlmsg(char *msg);
+int sendnlmsg(char *msg);
 int netlink_init(void);
 void netlink_exit(void);
 #endif /*__GF_SPI_H*/
