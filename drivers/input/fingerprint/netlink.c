@@ -10,52 +10,55 @@
 #include <linux/types.h>
 #include <net/sock.h>
 #include <net/netlink.h>
+#include "gf_spi.h"
 
 #define NETLINK_TEST 25
 #define MAX_MSGSIZE 32
 
-void sendnlmsg(char *msg);
 static int pid = -1;
-struct sock *nl_sk = NULL;
+static struct sock *nl_sk;
 
-void sendnlmsg(char *msg)
+int sendnlmsg(char *msg)
 {
-	struct sk_buff *skb_1;
+	struct sk_buff *skb;
 	struct nlmsghdr *nlh;
 	int len = NLMSG_SPACE(MAX_MSGSIZE);
 	int ret = 0;
-	if (!msg || !nl_sk || !pid) {
-		return ;
-	}
-	skb_1 = alloc_skb(len, GFP_KERNEL);
-	if (!skb_1) {
-		pr_err("alloc_skb error\n");
-		return;
+
+	if (!msg || !nl_sk || !pid)
+		return -ENODEV;
+
+	skb = alloc_skb(len, GFP_ATOMIC);
+	if (!skb)
+		return -ENOMEM;
+
+	nlh = nlmsg_put(skb, 0, 0, 0, MAX_MSGSIZE, 0);
+	if (!nlh) {
+		kfree_skb(skb);
+		return -EMSGSIZE;
 	}
 
-	nlh = nlmsg_put(skb_1, 0, 0, 0, MAX_MSGSIZE, 0);
-
-	NETLINK_CB(skb_1).portid = 0;
-	NETLINK_CB(skb_1).dst_group = 0;
+	NETLINK_CB(skb).portid = 0;
+	NETLINK_CB(skb).dst_group = 0;
 
 	memcpy(NLMSG_DATA(nlh), msg, sizeof(char));
-	//printk("[FP] send message: %d\n", *(char *)NLMSG_DATA(nlh));
+	pr_debug("send message: %d\n", *(char *)NLMSG_DATA(nlh));
 
-	ret = netlink_unicast(nl_sk, skb_1, pid, MSG_DONTWAIT);
-	if (!ret) {
-		//kfree_skb(skb_1);
-		printk("[FP] send msg from kernel to usespace failed ret 0x%x\n", ret);
-	}
+	ret = netlink_unicast(nl_sk, skb, pid, MSG_DONTWAIT);
+	if (ret > 0)
+		ret = 0;
+
+	return ret;
 }
 
-void nl_data_ready(struct sk_buff *__skb)
+static void nl_data_ready(struct sk_buff *__skb)
 {
 	struct sk_buff *skb;
 	struct nlmsghdr *nlh;
 	char str[100];
-	skb = skb_get (__skb);
-	if(skb->len >= NLMSG_SPACE(0))
-	{
+
+	skb = skb_get(__skb);
+	if (skb->len >= NLMSG_SPACE(0)) {
 		nlh = nlmsg_hdr(skb);
 
 		memcpy(str, NLMSG_DATA(nlh), sizeof(str));
@@ -70,6 +73,7 @@ void nl_data_ready(struct sk_buff *__skb)
 int netlink_init(void)
 {
 	struct netlink_kernel_cfg netlink_cfg;
+
 	memset(&netlink_cfg, 0, sizeof(struct netlink_kernel_cfg));
 
 	netlink_cfg.groups = 0;
@@ -80,7 +84,7 @@ int netlink_init(void)
 	nl_sk = netlink_kernel_create(&init_net, NETLINK_TEST,
 			&netlink_cfg);
 
-	if(!nl_sk){
+	if (!nl_sk) {
 		pr_err("create netlink socket error\n");
 		return 1;
 	}
@@ -90,11 +94,10 @@ int netlink_init(void)
 
 void netlink_exit(void)
 {
-	if(nl_sk != NULL){
+	if (nl_sk != NULL) {
 		netlink_kernel_release(nl_sk);
 		nl_sk = NULL;
 	}
 
 	pr_info("self module exited\n");
 }
-
