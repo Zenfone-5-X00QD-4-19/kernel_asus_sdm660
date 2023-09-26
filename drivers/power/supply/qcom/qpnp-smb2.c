@@ -29,6 +29,7 @@
 #include <linux/fcntl.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/iio/consumer.h>
 #include <linux/sched.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -64,8 +65,8 @@ bool water_once_flag = 0;
 bool boot_completed_flag = 0;			// 1 for boot complete, refer to sys.boot_completed in init.asus.userdebug.rc file
 extern bool asus_flow_done_flag;
 extern bool g_Charger_mode;			//from init/main.c
-int qc_stat_registed = 0;				
-
+extern int asus_CHG_TYPE;
+int qc_stat_registed = 0;
 int thermal_inov_flag =0;
 #define INOV_TRIGGER		40
 #define INOV_RELEASE		38
@@ -467,6 +468,22 @@ static int smb2_parse_dt(struct smb2 *chip)
 	chg->ufp_only_mode = of_property_read_bool(node,
 					"qcom,ufp-only-mode");
 
+	rc = of_property_match_string(node, "io-channel-names",
+			"asus_adapter_vadc");
+	if (rc >= 0) {
+		chg->iio.asus_adapter_vadc_chan = iio_channel_get(chg->dev,
+				"asus_adapter_vadc");
+		if (IS_ERR(chg->iio.asus_adapter_vadc_chan)) {
+			rc = PTR_ERR(chg->iio.asus_adapter_vadc_chan);
+			if (rc != -EPROBE_DEFER)
+				dev_err(chg->dev,
+				"iio.asus_adapter_vadc_chan channel unavailable,%ld\n",
+				rc);
+			chg->iio.asus_adapter_vadc_chan = NULL;
+			return rc;
+		}
+	}
+
 	return 0;
 }
 
@@ -503,6 +520,7 @@ static enum power_supply_property smb2_usb_props[] = {
 	POWER_SUPPLY_PROP_CONNECTOR_TYPE,
 	POWER_SUPPLY_PROP_MOISTURE_DETECTED,
 };
+extern bool asus_adapter_detecting_flag;
 
 static int smb2_usb_get_prop(struct power_supply *psy,
 		enum power_supply_property psp,
@@ -532,6 +550,17 @@ static int smb2_usb_get_prop(struct power_supply *psy,
 			val->intval = 1;
 		if (chg->real_charger_type == POWER_SUPPLY_TYPE_UNKNOWN)
 			val->intval = 0;
+
+		/* WeiYu ++
+			keep reporting online while under ac detecting
+			[concern] N/A, similar WA to N 
+			[history] prop online logic are difference between N/O,
+			hence O need add this section
+		*/
+		if (val->intval == 0 && asus_adapter_detecting_flag){
+			val->intval = 1;		
+			CHG_DBG("force reporting online due to under AC detecting flow\n");
+		}
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		rc = smblib_get_prop_usb_voltage_max(chg, val);
@@ -2511,6 +2540,7 @@ static void smb2_create_debugfs(struct smb2 *chip)
 
 #endif
 
+//refer to porting guide power on settings
 void asus_probe_pmic_settings(struct smb_charger *chg)
 {
 	int rc;
@@ -2653,7 +2683,6 @@ static int smb2_probe(struct platform_device *pdev)
 	asus_charger_lock = wakeup_source_register(NULL, "asus_charger_soft_start_lock");
 	smbchg_dev = chg;			//ASUS BSP add globe device struct +++
 	global_gpio = gpio_ctrl;	//ASUS BSP add gpio control struct +++
-
 	chg->audio_headset_drp_wait_ms = &__audio_headset_drp_wait_ms;
 
 	chg->regmap = dev_get_regmap(chg->dev->parent, NULL);
@@ -2769,12 +2798,7 @@ static int smb2_probe(struct platform_device *pdev)
 		goto cleanup;
 	}
 
-////ASUS FEATURES +++
-
-	//WeiYu: handle asus gpio settings +++	
 	asus_regist_adc_gpios(pdev);
-	//WeiYu: handle asus gpio settings ---
-
 	asus_probe_pmic_settings(chg);
 
 ////ASUS FEATURES ---
