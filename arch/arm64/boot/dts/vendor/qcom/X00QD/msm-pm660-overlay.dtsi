@@ -14,26 +14,31 @@
 };
 
 &pm660_gpios {
-	gpio@c100 {
-		status = "okay";
-		qcom,mode = <3>; /* Analog Pass Through */
-		qcom,pull = <5>; /* Input No pull */
-		qcom,vin-sel = <0>; /* VIN0 */
-		qcom,src-sel = <0>; /* Constant */
-		qcom,master-en = <0>; /* Eanble GPIO */
+	asus_adapter_id {
+		asus_adapter_id_default: asus_adapter_id_default {
+			pins = "gpio3";
+			function = "normal";
+			/* Input No pull */
+			input-enable;
+			bias-disable;
+		};
 	};
+};
 
-	gpio@c200 {
-		status = "okay";
-		qcom,mode = <3>; /* Analog Pass Through */
-		qcom,pull = <5>; /* Input No pull */
-		qcom,vin-sel = <0>; /* VIN0 */
-		qcom,src-sel = <0>; /* Constant */
-		qcom,master-en = <0>; /* Eanble GPIO */
+&pm660_vadc {
+	asus_adapter_vadc {
+		label = "asus_adapter_vadc";
+		reg = <ADC_GPIO2>;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
 	};
 };
 
 &pm660_charger {
+	pinctrl-names = "default";
+	pinctrl-0 = <&asus_adapter_id_default>;
+	ADC_SW_EN-gpios59 = <&tlmm 71 0x0>;
+	ADCPWREN_PMI_GP1-gpios34 = <&tlmm 3 0x0>;
 	qcom,fcc-max-ua = <3000000>;
 	qcom,fv-max-uv = <4380000>;
 	qcom,usb-icl-ua = <1000000>;
