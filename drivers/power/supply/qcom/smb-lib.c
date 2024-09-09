@@ -4373,7 +4373,6 @@ void asus_batt_RTC_work(struct work_struct *dat)
 //ASUS BSP Add per min monitor jeita & thermal & typeC_DFP +++
 void smblib_asus_monitor_start(struct smb_charger *chg, int time)
 {
-	asus_flow_done_flag = 1;
 	cancel_delayed_work(&chg->asus_min_monitor_work);
 	schedule_delayed_work(&chg->asus_min_monitor_work, msecs_to_jiffies(time));
 }
