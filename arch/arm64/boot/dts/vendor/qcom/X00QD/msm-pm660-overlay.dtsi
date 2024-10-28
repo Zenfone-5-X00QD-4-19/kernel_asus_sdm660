@@ -78,7 +78,7 @@
 			qcom,timeout-ms = <120000>;
 			qcom,actuator-type = "lra";
 			qcom,play-mode = "direct";
-			qcom,vmax-mv = <2784>;
+			qcom,vmax-mv = <2520>;
 			qcom,ilim-ma = <800>;
 			qcom,wave-shape = "sine";
 			qcom,wave-play-rate-us = <4255>; //235Hz (0x30D40 / 0x353)
