@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-&q6core {
+&soc {
 	lpi_tlmm: lpi_pinctrl@15070000 {
 		ter_mi2s_clk_active: ter_mi2s_clk_active {
 			mux {
