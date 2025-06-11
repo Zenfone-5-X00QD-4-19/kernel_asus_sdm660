@@ -831,31 +831,16 @@ static int map_update_elem(union bpf_attr *attr)
 		goto err_put;
 	}
 
-<<<<<<< HEAD
-	key = memdup_user(ukey, map->key_size);
-	if (IS_ERR(key)) {
-		err = PTR_ERR(key);
-		goto err_put;
-=======
         if ((attr->flags & BPF_F_LOCK) &&
             !map_value_has_spin_lock(map)) {
                 err = -EINVAL;
                 goto err_put;
-        }
-
-	if (map->key_size <= sizeof(key_onstack)) {
-		key = key_onstack;
-		if (copy_from_user(key, ukey, map->key_size)) {
-			err = -EFAULT;
-			goto err_put;
-		}
-	} else {
+        } else {
 		key = memdup_user(ukey, map->key_size);
 		if (IS_ERR(key)) {
 			err = PTR_ERR(key);
 			goto err_put;
 		}
->>>>>>> 1212d0554e4c (bpf: introduce BPF_F_LOCK flag)
 	}
 
 	if (map->map_type == BPF_MAP_TYPE_PERCPU_HASH ||
