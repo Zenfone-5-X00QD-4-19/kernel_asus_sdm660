@@ -85,10 +85,10 @@
 	qcom,misc-clk-trim-error-reg = <0xf3>;
 	qcom,actuator-type = <1>;
 	qcom,play-mode = "direct";
-	qcom,vmax-mv = <3200>;
+	qcom,vmax-mv = <2784>;
 	qcom,ilim-ma = <800>;
 	qcom,sc-dbc-cycles = <8>;
-	qcom,wave-play-rate-us = <6667>;
+	qcom,wave-play-rate-us = <4255>;
 	qcom,en-brake;
 	qcom,lra-high-z = "opt0";
 	qcom,lra-auto-res-mode = "qwd";
