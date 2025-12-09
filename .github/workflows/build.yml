@@ -1,0 +1,122 @@
+name: Compile Kernel for X00QD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    env:
+      DEVICE_TARGET: X00QD
+      CLANG_TRIPLE: aarch64-linux-gnu
+      LLVM: '1'
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CROSS_COMPILE_ARM32: arm-linux-androideabi-
+      KBUILD_BUILD_USER: Henrqiue
+      KBUILD_BUILD_HOST: project
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Build Environment
+        run: |
+          # Update package manager
+          sudo apt-get update
+          
+          # Install Clang 14 and LLVM tools
+          sudo apt-get install -y clang-14 lld-14 llvm-14 --no-install-recommends
+          
+          # Install cross-compilation toolchains
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi \
+            --no-install-recommends
+          
+          # Create symlinks for LLVM tools
+          mkdir -p $HOME/toolchains/clang/bin
+          for tool in clang lld ld.lld llvm-ar llvm-objcopy llvm-objdump llvm-nm; do
+            if ! [ -x $HOME/toolchains/clang/bin/$tool ]; then
+              # Try unversioned first, then versioned
+              src=$(command -v $tool 2>/dev/null || command -v ${tool}-14 2>/dev/null || command -v llvm-14-${tool##*-} 2>/dev/null)
+              [ -n "$src" ] && ln -sf "$src" $HOME/toolchains/clang/bin/$tool || true
+            fi
+          done
+          
+          # Clone Android GCC prebuilts
+          mkdir -p $HOME/toolchains
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 $HOME/toolchains/gcc64
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 $HOME/toolchains/gcc32
+
+      - name: Run KernelSU setup
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/rsuntk/KernelSU/main/kernel/setup.sh" | bash -s main
+
+      - name: Regenerate defconfig
+        run: |
+          export PATH="$HOME/toolchains/clang/bin:$HOME/toolchains/gcc64/bin:$HOME/toolchains/gcc32/bin:$PATH"
+          
+          make O=out ARCH=arm64 \
+            CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
+            LLVM=${LLVM} LD=ld.lld \
+            HOSTCC=gcc \
+            CROSS_COMPILE=${CROSS_COMPILE} \
+            CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
+            CROSS_COMPILE_COMPAT=${CROSS_COMPILE_ARM32} \
+            vendor/X00QD_defconfig
+          
+          make O=out ARCH=arm64 \
+            CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
+            LLVM=${LLVM} LD=ld.lld \
+            HOSTCC=gcc \
+            CROSS_COMPILE=${CROSS_COMPILE} \
+            CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
+            CROSS_COMPILE_COMPAT=${CROSS_COMPILE_ARM32} \
+            savedefconfig
+          
+          cp out/defconfig arch/arm64/configs/vendor/X00QD_defconfig
+
+      - name: Compile Kernel
+        run: |
+          export PATH="$HOME/toolchains/clang/bin:$HOME/toolchains/gcc64/bin:$HOME/toolchains/gcc32/bin:$PATH"
+          
+          # Build configuration
+          make O=out ARCH=arm64 \
+            CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
+            LLVM=${LLVM} LD=ld.lld \
+            HOSTCC=gcc \
+            CROSS_COMPILE=${CROSS_COMPILE} \
+            CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
+            CROSS_COMPILE_COMPAT=${CROSS_COMPILE_ARM32} \
+            vendor/X00QD_defconfig
+          
+          # Compile kernel
+          make O=out -j$(nproc) ARCH=arm64 \
+            CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
+            LLVM=${LLVM} LD=ld.lld \
+            HOSTCC=gcc \
+            CROSS_COMPILE=${CROSS_COMPILE} \
+            CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
+            CROSS_COMPILE_COMPAT=${CROSS_COMPILE_ARM32} \
+            Image.gz-dtb 2>&1 | tee out/build.log
+
+      - name: Package Kernel (AnyKernel3)
+        if: success()
+        run: |
+          git clone --depth=1 https://github.com/Kyura-Ground/AnyKernel3 -b 4.19 AnyKernel3
+          cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
+
+      - name: Upload Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-4.19-${{ env.DEVICE_TARGET }}-${{ github.run_number }}
+          path: AnyKernel3/*
+          retention-days: 7
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ env.DEVICE_TARGET }}
+          path: out/build.log
+          retention-days: 3
