@@ -6,6 +6,8 @@ on:
 jobs:
   compile:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       DEVICE_TARGET: X00QD
       CLANG_TRIPLE: aarch64-linux-gnu
@@ -14,35 +16,28 @@ jobs:
       CROSS_COMPILE_ARM32: arm-linux-androideabi-
       KBUILD_BUILD_USER: Henrqiue
       KBUILD_BUILD_HOST: project
+      RELEASE_NAME: "4.19.325-st10-bruh-SUSFS"
 
     steps:
       - uses: actions/checkout@v5
 
       - name: Setup Build Environment
         run: |
-          # Update package manager
           sudo apt-get update
-          
-          # Install Clang 14 and LLVM tools
           sudo apt-get install -y clang-14 lld-14 llvm-14 --no-install-recommends
-          
-          # Install cross-compilation toolchains
           sudo apt-get install -y \
             gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
             gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi \
-            --no-install-recommends
+            zip --no-install-recommends
           
-          # Create symlinks for LLVM tools
           mkdir -p $HOME/toolchains/clang/bin
           for tool in clang lld ld.lld llvm-ar llvm-objcopy llvm-objdump llvm-nm; do
             if ! [ -x $HOME/toolchains/clang/bin/$tool ]; then
-              # Try unversioned first, then versioned
               src=$(command -v $tool 2>/dev/null || command -v ${tool}-14 2>/dev/null || command -v llvm-14-${tool##*-} 2>/dev/null)
               [ -n "$src" ] && ln -sf "$src" $HOME/toolchains/clang/bin/$tool || true
             fi
           done
           
-          # Clone Android GCC prebuilts
           mkdir -p $HOME/toolchains
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 $HOME/toolchains/gcc64
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 $HOME/toolchains/gcc32
@@ -54,7 +49,6 @@ jobs:
       - name: Regenerate defconfig
         run: |
           export PATH="$HOME/toolchains/clang/bin:$HOME/toolchains/gcc64/bin:$HOME/toolchains/gcc32/bin:$PATH"
-          
           make O=out ARCH=arm64 \
             CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
             LLVM=${LLVM} LD=ld.lld \
@@ -78,8 +72,6 @@ jobs:
       - name: Compile Kernel
         run: |
           export PATH="$HOME/toolchains/clang/bin:$HOME/toolchains/gcc64/bin:$HOME/toolchains/gcc32/bin:$PATH"
-          
-          # Build configuration
           make O=out ARCH=arm64 \
             CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
             LLVM=${LLVM} LD=ld.lld \
@@ -88,8 +80,7 @@ jobs:
             CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
             CROSS_COMPILE_COMPAT=${CROSS_COMPILE_ARM32} \
             vendor/X00QD_defconfig
-          
-          # Compile kernel
+          # Log build tetap dibuat ke out/build.log
           make O=out -j$(nproc) ARCH=arm64 \
             CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
             LLVM=${LLVM} LD=ld.lld \
@@ -104,19 +95,31 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/Kyura-Ground/AnyKernel3 -b 4.19 AnyKernel3
           cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
+          rm -rf AnyKernel3/.git
+          cd AnyKernel3 && zip -r9 "../${{ env.RELEASE_NAME }}-${{ env.DEVICE_TARGET }}.zip" * && cd ..
 
-      - name: Upload Artifacts
+      - name: Upload to GitHub Release
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: softprops/action-gh-release@v2
         with:
-          name: Kernel-4.19-${{ env.DEVICE_TARGET }}-${{ github.run_number }}
-          path: AnyKernel3/*
-          retention-days: 7
+          tag_name: build-${{ github.run_number }}-${{ github.run_id }}
+          name: ${{ env.RELEASE_NAME }} for ${{ env.DEVICE_TARGET }}
+          body: |
+            ## Kernel Build Information
+            - **Device**: ${{ env.DEVICE_TARGET }}
+            - **Version**: ${{ env.RELEASE_NAME }}
+            - **KernelSU**: Integrated
+          files: |
+            ${{ env.RELEASE_NAME }}-*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Build Log
+      - name: Upload Artifacts (Log & Zip)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-log-${{ env.DEVICE_TARGET }}
-          path: out/build.log
-          retention-days: 3
+          name: Build-Artifacts-${{ env.DEVICE_TARGET }}
+          path: |
+            ${{ env.RELEASE_NAME }}-*.zip
+            out/build.log
+          retention-days: 7
