@@ -3,6 +3,7 @@
 
 #include <uapi/linux/btf.h>
 #include <uapi/linux/bpf.h>
+#include <uapi/linux/fuse.h>
 #include <uapi/linux/bpf_perf_event.h>
 #include <uapi/linux/types.h>
 #include <linux/seq_file.h>
@@ -1105,7 +1106,7 @@ static void *btf_show_obj_safe(struct btf_show *show,
 		size_left = btf_show_obj_size_left(show, data);
 		if (size_left > BTF_SHOW_OBJ_SAFE_SIZE)
 			size_left = BTF_SHOW_OBJ_SAFE_SIZE;
-		show->state.status = probe_kernel_read(show->obj.safe,
+		show->state.status = copy_from_kernel_nofault(show->obj.safe,
 							      data, size_left);
 		if (!show->state.status) {
 			show->obj.data = data;
@@ -4194,8 +4195,8 @@ errout:
 	return ERR_PTR(err);
 }
 
-extern char __weak _binary__btf_vmlinux_bin_start[];
-extern char __weak _binary__btf_vmlinux_bin_end[];
+extern char __weak __start_BTF[];
+extern char __weak __stop_BTF[];
 extern struct btf *btf_vmlinux;
 
 #define BPF_MAP_TYPE(_id, _ops)
@@ -4371,9 +4372,8 @@ struct btf *btf_parse_vmlinux(void)
 	}
 	env->btf = btf;
 
-	btf->data = _binary__btf_vmlinux_bin_start;
-	btf->data_size = _binary__btf_vmlinux_bin_end -
-		_binary__btf_vmlinux_bin_start;
+	btf->data = __start_BTF;
+	btf->data_size = __stop_BTF - __start_BTF;
 
 	err = btf_parse_hdr(env);
 	if (err)
