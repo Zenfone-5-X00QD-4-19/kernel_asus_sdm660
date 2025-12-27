@@ -16,7 +16,7 @@ jobs:
       CROSS_COMPILE_ARM32: arm-linux-androideabi-
       KBUILD_BUILD_USER: Henrqiue
       KBUILD_BUILD_HOST: project
-      RELEASE_NAME: "4.19.325-st10-bruh-SUSFS"
+      RELEASE_NAME: "4.19.325-st10-bruh-SusFS"
 
     steps:
       - uses: actions/checkout@v5
@@ -44,7 +44,7 @@ jobs:
 
       - name: Run KernelSU setup
         run: |
-          curl -LSs "https://raw.githubusercontent.com/rsuntk/KernelSU/main/kernel/setup.sh" | bash -s main
+          curl -LSs "https://raw.githubusercontent.com/rsuntk/KernelSU/main/kernel/setup.sh" | bash -s susfs-rksu-master
 
       - name: Regenerate defconfig
         run: |
