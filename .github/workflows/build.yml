@@ -51,7 +51,7 @@ jobs:
           export PATH="$HOME/toolchains/clang/bin:$HOME/toolchains/gcc64/bin:$HOME/toolchains/gcc32/bin:$PATH"
           make O=out ARCH=arm64 \
             CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
-            LLVM=${LLVM} LD=ld.lld \
+            LLVM=${LLVM} LD=ld.lld LLVM_IAS=1 \
             HOSTCC=gcc \
             CROSS_COMPILE=${CROSS_COMPILE} \
             CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
@@ -60,7 +60,7 @@ jobs:
           
           make O=out ARCH=arm64 \
             CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
-            LLVM=${LLVM} LD=ld.lld \
+            LLVM=${LLVM} LD=ld.lld LLVM_IAS=1 \
             HOSTCC=gcc \
             CROSS_COMPILE=${CROSS_COMPILE} \
             CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
@@ -74,7 +74,7 @@ jobs:
           export PATH="$HOME/toolchains/clang/bin:$HOME/toolchains/gcc64/bin:$HOME/toolchains/gcc32/bin:$PATH"
           make O=out ARCH=arm64 \
             CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
-            LLVM=${LLVM} LD=ld.lld \
+            LLVM=${LLVM} LD=ld.lld LLVM_IAS=1 \
             HOSTCC=gcc \
             CROSS_COMPILE=${CROSS_COMPILE} \
             CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
@@ -84,6 +84,7 @@ jobs:
           make O=out -j$(nproc) ARCH=arm64 \
             CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
             LLVM=${LLVM} LD=ld.lld \
+	    LLVM_IAS=1 \
             HOSTCC=gcc \
             CROSS_COMPILE=${CROSS_COMPILE} \
             CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
