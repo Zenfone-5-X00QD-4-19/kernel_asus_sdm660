@@ -83,7 +83,7 @@ jobs:
           # Log build tetap dibuat ke out/build.log
           make O=out -j$(nproc) ARCH=arm64 \
             CC=clang CLANG_TRIPLE=${CLANG_TRIPLE} \
-            LLVM=${LLVM} LD=ld.lldLLVM_IAS=1 \
+            LLVM=${LLVM} LD=ld.lld LLVM_IAS=1 \
             HOSTCC=gcc \
             CROSS_COMPILE=${CROSS_COMPILE} \
             CROSS_COMPILE_ARM32=${CROSS_COMPILE_ARM32} \
