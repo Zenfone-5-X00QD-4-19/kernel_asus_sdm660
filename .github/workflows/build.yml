@@ -44,7 +44,7 @@ jobs:
 
       - name: Run KernelSU setup
         run: |
-          curl -LSs "https://raw.githubusercontent.com/rsuntk/KernelSU/main/kernel/setup.sh" | bash -s susfs-rksu-master
+          curl -LSs "https://raw.githubusercontent.com/ikwfahmi/KernelSU-Next/dev/kernel/setup.sh" | bash -s legacy
 
       - name: Regenerate defconfig
         run: |
