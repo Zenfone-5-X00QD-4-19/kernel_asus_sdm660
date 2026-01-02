@@ -6,11 +6,8 @@ obj-y += FRGBsensor_ATTR.o
 
 DEBUG = n
 
-ifeq ($(DEBUG),y)
-	DEBFLAGS = -O -g -DASH_ATTR_DEBUG
-else
-	DEBFLAGS = -O -g
-endif
+
+DEBFLAGS = -O
 ccflags-y += $(DEBFLAGS)
 
 
