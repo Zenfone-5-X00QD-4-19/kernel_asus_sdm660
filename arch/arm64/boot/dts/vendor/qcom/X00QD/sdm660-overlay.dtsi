@@ -1,48 +1,16 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+/* Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 
 / {
-cpus {
-	cpu@0 {
-		efficiency = <618>;
-		capacity-dmips-mhz = <618>;
-	};
-
-	cpu@4 {
-		efficiency = <1024>;
-		capacity-dmips-mhz = <1024>;
-	};
-};
-
-energy_costs: energy-costs {
-	compatible = "sched-energy";
-
-	CPU_COST_0: core-cost0 {
-		busy-cost-data = <
-			  633600   43
-			  902400   62
-			 1113600   80
-			 1401600  123
-			 1536000  144
-			 1612800  160
-		>;
-		idle-cost-data = <
-			3 2 1
-		>;
-	};
-
-	CPU_COST_1: core-cost1 {
-		busy-cost-data = <
-			 1113600  232
-			 1401600  326
-			 1747200  488
-			 1804800  510
-		>;
-		idle-cost-data = <
-			3 2 1
-		>;
-	};
-};
-
 	reserved-memory {
 		ramoops {
 			compatible = "removed-dma-pool", "ramoops";
@@ -69,11 +37,41 @@ energy_costs: energy-costs {
 
 &firmware {
 	android {
-		boot_devices = "soc/c0c4000.sdhci";
-		/delete-node/ fstab;
-
 		vbmeta {
 			status = "disabled";
+		};
+
+		fstab {
+			vendor {
+				fsmgr_flags = "wait";
+			};
+
+			system {
+				compatible = "android,system";
+				dev = "/dev/block/platform/soc/c0c4000.sdhci/by-name/system";
+				type = "ext4";
+				mnt_flags = "ro,barrier=1,discard";
+				fsmgr_flags = "wait";
+				status = "ok";
+			};
+
+			system_ext {
+				compatible = "android,system_ext";
+				dev = "/dev/block/platform/soc/c0c4000.sdhci/by-name/system_ext";
+				type = "ext4";
+				mnt_flags = "ro,barrier=1,discard";
+				fsmgr_flags = "wait";
+				status = "ok";
+			};
+
+			product {
+				compatible = "android,product";
+				dev = "/dev/block/platform/soc/c0c4000.sdhci/by-name/product";
+				type = "ext4";
+				mnt_flags = "ro,barrier=1,discard";
+				fsmgr_flags = "wait";
+				status = "ok";
+			};
 		};
 	};
 };
