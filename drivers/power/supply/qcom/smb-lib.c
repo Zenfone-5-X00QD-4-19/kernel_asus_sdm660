@@ -59,15 +59,6 @@ In Ara, CONFIG_ASUS_PD_CHARGER=0
 const u32 default_src_caps[] = { 0x36019032 };  /* VSafe5V @ 0.5A */
 int default_src_caps_size = ARRAY_SIZE(default_src_caps);
 int min_sink_current = 500;
-
-#ifdef CONFIG_MACH_XIAOMI_LAVENDER
-struct g_nvt_data {
-	bool valid;
-	bool usb_plugin;
-	struct work_struct nvt_usb_plugin_work;
-};
-extern struct g_nvt_data g_nvt;
->>>>>>> 9a24abebe00b (power: supply: Conditionally compile logging)
 #endif
 // ASUS PD: PDO ICL ---
 
