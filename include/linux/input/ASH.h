@@ -485,13 +485,13 @@ extern void hallsensor_report_lid(int lid);
  * @LSENSOR_200LUX_CALIBRATION_FILE : 200 Lux Calibration file.
  * @LSENSOR_1000LUX_CALIBRATION_FILE : 1000 Lux Calibration file.
  */
-#define LSENSOR_200LUX_CALIBRATION_FILE	"/factory/lsensor_200lux.nv"
-#define LSENSOR_1000LUX_CALIBRATION_FILE	"/factory/lsensor_1000lux.nv"
-#define LSENSOR_CALIBRATION_FILE			"/factory/lsensor.nv"
+#define LSENSOR_200LUX_CALIBRATION_FILE	"/vendor/factory/lsensor_200lux.nv"
+#define LSENSOR_1000LUX_CALIBRATION_FILE	"/vendor/factory/lsensor_1000lux.nv"
+#define LSENSOR_CALIBRATION_FILE			"/vendor/factory/lsensor.nv"
 
 /*For transition period from 100ms to 50ms +++*/
-#define LSENSOR_50MS_CALIBRATION_FILE		"/factory/lsensor_50ms.nv"
-#define LSENSOR_100MS_CALIBRATION_FILE		"/factory/lsensor_100ms.nv"
+#define LSENSOR_50MS_CALIBRATION_FILE		"/vendor/factory/lsensor_50ms.nv"
+#define LSENSOR_100MS_CALIBRATION_FILE		"/vendor/factory/lsensor_100ms.nv"
 /*For transition period from 100ms to 50ms ---*/
 
 /**
@@ -500,16 +500,16 @@ extern void hallsensor_report_lid(int lid);
  * @PSENSOR_LOW_CALIBRATION_FILE : low calibration file.
  * @PSENSOR_INF_CALIBRATION_FILE : cross talk calibration file.
  */
-#define PSENSOR_HI_CALIBRATION_FILE  	"/factory/psensor_hi.nv"
-#define PSENSOR_LOW_CALIBRATION_FILE  	"/factory/psensor_low.nv"
-#define PSENSOR_INF_CALIBRATION_FILE  	"/factory/psensor_inf.nv"
+#define PSENSOR_HI_CALIBRATION_FILE  	"/vendor/factory/psensor_hi.nv"
+#define PSENSOR_LOW_CALIBRATION_FILE  	"/vendor/factory/psensor_low.nv"
+#define PSENSOR_INF_CALIBRATION_FILE  	"/vendor/factory/psensor_inf.nv"
 
 /*For transition period from 3/5 to 2/4 +++*/
-#define PSENSOR_1CM_CALIBRATION_FILE    "/factory/psensor_1cm.nv"
-#define PSENSOR_2CM_CALIBRATION_FILE  	"/factory/psensor_2cm.nv"
-#define PSENSOR_4CM_CALIBRATION_FILE  	"/factory/psensor_4cm.nv"
-#define PSENSOR_3CM_CALIBRATION_FILE  	"/factory/psensor_3cm.nv"
-#define PSENSOR_5CM_CALIBRATION_FILE  	"/factory/psensor_5cm.nv"
+#define PSENSOR_1CM_CALIBRATION_FILE    "/vendor/factory/psensor_1cm.nv"
+#define PSENSOR_2CM_CALIBRATION_FILE  	"/vendor/factory/psensor_2cm.nv"
+#define PSENSOR_4CM_CALIBRATION_FILE  	"/vendor/factory/psensor_4cm.nv"
+#define PSENSOR_3CM_CALIBRATION_FILE  	"/vendor/factory/psensor_3cm.nv"
+#define PSENSOR_5CM_CALIBRATION_FILE  	"/vendor/factory/psensor_5cm.nv"
 /*For transition period from 3/5 to 2/4 ---*/
 
 /**
@@ -518,9 +518,9 @@ extern void hallsensor_report_lid(int lid);
  * @FRGB_LIGHT2_CALIBRATION_FILE : light2 calibration file.
  * @FRGB_LIGHT3_CALIBRATION_FILE : light3 calibration file.
  */
-#define FRGB_LIGHT1_CALIBRATION_FILE  	"/factory/frgb_light1.nv"
-#define FRGB_LIGHT2_CALIBRATION_FILE  	"/factory/frgb_light2.nv"
-#define FRGB_LIGHT3_CALIBRATION_FILE  	"/factory/frgb_light3.nv"
+#define FRGB_LIGHT1_CALIBRATION_FILE  	"/vendor/factory/frgb_light1.nv"
+#define FRGB_LIGHT2_CALIBRATION_FILE  	"/vendor/factory/frgb_light2.nv"
+#define FRGB_LIGHT3_CALIBRATION_FILE  	"/vendor/factory/frgb_light3.nv"
 
 /**
  * psensor_factory_read_high
