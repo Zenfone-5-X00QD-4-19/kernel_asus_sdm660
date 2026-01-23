@@ -989,6 +989,8 @@ static const struct adc_channels adc_chans_rev2[ADC_MAX_CHANNEL] = {
 					SCALE_HW_CALIB_THERM_100K_PULLUP)
 	[ANA_IN]		= ADC_CHAN_TEMP("drax_temp", 1,
 					SCALE_HW_CALIB_PMIC_THERM)
+	[ADC_GPIO2]		= ADC_CHAN_VOLT("gpio3", 1,
+					SCALE_HW_CALIB_DEFAULT)
 };
 
 static int adc_get_dt_channel_data(struct adc_chip *adc,
