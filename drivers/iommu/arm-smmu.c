@@ -7232,6 +7232,7 @@ static struct platform_driver qsmmuv500_tbu_driver = {
 	.probe	= qsmmuv500_tbu_probe,
 };
 
+#if 0 /* Disabled: QCOM SoC uses arm_smmu_init() instead */
 static int __init arm_smmu_driver_init(void)
 {
 	int ret;
@@ -7249,8 +7250,10 @@ static void __exit arm_smmu_driver_exit(void)
 	platform_driver_unregister(&arm_smmu_driver);
 }
 
-subsys_initcall(arm_smmu_driver_init);
-module_exit(arm_smmu_driver_exit);
+/* Disabled: QCOM SoC uses arm_smmu_init() instead */
+// subsys_initcall(arm_smmu_driver_init);
+// module_exit(arm_smmu_driver_exit);
+#endif
 
 MODULE_DESCRIPTION("IOMMU API for ARM architected SMMU implementations");
 MODULE_AUTHOR("Will Deacon <will.deacon@arm.com>");
